@@ -30,3 +30,20 @@ impl ColoredStream {
         _ = self.stdout.reset();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_print() {
+        let mut stream: ColoredStream = Default::default();
+        stream.print("\nhello print\n");
+    }
+
+    #[test]
+    fn test_println() {
+        let mut stream: ColoredStream = Default::default();
+        stream.println("\nhello println");
+    }
+}
