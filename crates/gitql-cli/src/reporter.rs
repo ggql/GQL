@@ -48,3 +48,28 @@ impl DiagnosticReporter {
         self.stdout.reset();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use gitql_parser::tokenizer::Location;
+    use super::*;
+
+    #[test]
+    fn test_report_error() {
+        let mut reporter: DiagnosticReporter = Default::default();
+        reporter.report_error("hello error");
+    }
+
+    #[test]
+    fn test_report_gql_error() {
+        let mut reporter: DiagnosticReporter = Default::default();
+        let error: GQLError = GQLError{ message: "hello gql error".to_string(), location: Location { start: 0, end: 0 } };
+        reporter.report_gql_error(error);
+    }
+
+    #[test]
+    fn test_report_runtime_error() {
+        let mut reporter: DiagnosticReporter = Default::default();
+        reporter.report_runtime_error("hello runtime error".to_string());
+    }
+}
