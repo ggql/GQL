@@ -139,3 +139,60 @@ fn handle_pagination_input(current_page: usize, number_of_pages: usize) -> Pagin
         println!("Invalid input");
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use gitql_ast::value::Value;
+    use super::*;
+
+    #[test]
+    fn test_render_objects() {
+        let mut group: Vec<GQLObject> = vec![];
+        let mut groups: Vec<Vec<GQLObject>> = vec![];
+        let hidden_selections: [String; 1] = ["item".to_string()];
+        let pagination: bool = false;
+        let page_size: usize = 1;
+
+        render_objects(&mut groups, &hidden_selections, pagination, page_size);
+        assert_eq!(groups.is_empty(), true);
+
+        group.push(GQLObject{ attributes: Default::default()});
+
+        groups.clear();
+        groups.push(group.to_owned());
+
+        render_objects(&mut groups, &hidden_selections, pagination, page_size);
+        assert_eq!(groups.len(), 1);
+
+        groups.clear();
+        groups.push(group.to_owned());
+        groups.push(group.to_owned());
+
+        render_objects(&mut groups, &hidden_selections, pagination, page_size);
+        assert_eq!(groups.len(), 1);
+    }
+
+    #[test]
+    fn test_print_group_as_table() {
+        let header_color = comfy_table::Color::Green;
+        let mut titles: Vec<&str> = vec![];
+        let mut table_headers: Vec<comfy_table::Cell> = vec![];
+        let mut group: Vec<GQLObject> = vec![];
+        let mut attributes: HashMap<String, Value> = Default::default();
+
+        titles.push("title1");
+        titles.push("title2");
+
+        for key in &titles {
+            table_headers.push(comfy_table::Cell::new(key).fg(header_color));
+        }
+
+        attributes.insert("title1".to_string(), Value::Text("value1".to_string()));
+        attributes.insert("title2".to_string(), Value::Text("value2".to_string()));
+
+        group.push(GQLObject{ attributes });
+
+        print_group_as_table(&titles, table_headers, &group);
+    }
+}
