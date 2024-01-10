@@ -293,7 +293,6 @@ mod tests {
     fn test_value_equals() {
         let value = Value::Integer(1);
         let other = Value::Null;
-
         let ret = value.equals(&other);
         assert_eq!(ret, false);
 
@@ -375,61 +374,440 @@ mod tests {
 
     #[test]
     fn test_value_compare() {
+        let value = Value::Integer(1);
+        let other = Value::Null;
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Equal);
+
+        let value = Value::Integer(1);
+        let other = Value::Integer(1);
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Equal);
+
+        let value = Value::Integer(1);
+        let other = Value::Integer(2);
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Greater);
+
+        let value = Value::Float(1.0);
+        let other = Value::Float(1.0);
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Equal);
+
+        let value = Value::Float(1.0);
+        let other = Value::Float(2.0);
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Greater);
+
+        let value = Value::Text("hello".to_string());
+        let other = Value::Text("hello".to_string());
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Equal);
+
+        let value = Value::Text("hello".to_string());
+        let other = Value::Text("world".to_string());
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Greater);
+
+        let value = Value::Boolean(true);
+        let other = Value::Boolean(true);
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Equal);
+
+        let value = Value::DateTime(1704890191);
+        let other = Value::DateTime(1704890191);
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Equal);
+
+        let value = Value::DateTime(1704890191);
+        let other = Value::DateTime(1704890192);
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Greater);
+
+        let value = Value::Date(1704890191);
+        let other = Value::Date(1704890191);
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Equal);
+
+        let value = Value::Date(1704890191);
+        let other = Value::Date(1704890192);
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Greater);
+
+        let value = Value::Time("12:36:31".to_string());
+        let other = Value::Time("12:36:31".to_string());
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Equal);
+
+        let value = Value::Time("12:36:31".to_string());
+        let other = Value::Time("12:36:32".to_string());
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Greater);
+
+        let value = Value::Null;
+        let other = Value::Null;
+        let ret = value.compare(&other);
+        assert_eq!(ret, Ordering::Equal);
     }
 
     #[test]
     fn test_value_plus() {
+        let value = Value::Integer(1);
+        let other = Value::Null;
+        let ret = value.plus(&other);
+        assert_eq!(ret.as_int(), 0);
+
+        let value = Value::Integer(1);
+        let other = Value::Integer(1);
+        let ret = value.plus(&other);
+        assert_eq!(ret.as_int(), 2);
+
+        let value = Value::Float(1.0);
+        let other = Value::Float(1.0);
+        let ret = value.plus(&other);
+        assert_eq!(ret.as_float(), 2.0);
+
+        let value = Value::Integer(1);
+        let other = Value::Float(1.0);
+        let ret = value.plus(&other);
+        assert_eq!(ret.as_float(), 2.0);
+
+        let value = Value::Float(1.0);
+        let other = Value::Integer(1);
+        let ret = value.plus(&other);
+        assert_eq!(ret.as_float(), 2.0);
     }
 
     #[test]
     fn test_value_minus() {
+        let value = Value::Integer(1);
+        let other = Value::Null;
+        let ret = value.minus(&other);
+        assert_eq!(ret.as_int(), 0);
+
+        let value = Value::Integer(1);
+        let other = Value::Integer(1);
+        let ret = value.minus(&other);
+        assert_eq!(ret.as_int(), 0);
+
+        let value = Value::Float(1.0);
+        let other = Value::Float(1.0);
+        let ret = value.minus(&other);
+        assert_eq!(ret.as_float(), 0.0);
+
+        let value = Value::Integer(2);
+        let other = Value::Float(1.0);
+        let ret = value.minus(&other);
+        assert_eq!(ret.as_float(), 1.0);
+
+        let value = Value::Float(1.0);
+        let other = Value::Integer(1);
+        let ret = value.minus(&other);
+        assert_eq!(ret.as_float(), 0.0);
     }
 
     #[test]
     fn test_value_mul() {
+        let value = Value::Integer(1);
+        let other = Value::Null;
+        if let Ok(ret) = value.mul(&other) {
+            assert_eq!(ret.as_int(), 0);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Integer(1);
+        let other = Value::Integer(2);
+        if let Ok(ret) = value.mul(&other) {
+            assert_eq!(ret.as_int(), 2);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Float(1.0);
+        let other = Value::Float(2.0);
+        if let Ok(ret) = value.mul(&other) {
+            assert_eq!(ret.as_float(), 2.0);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Integer(2);
+        let other = Value::Float(1.0);
+        if let Ok(ret) = value.mul(&other) {
+            assert_eq!(ret.as_float(), 2.0);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Float(1.0);
+        let other = Value::Integer(2);
+        if let Ok(ret) = value.mul(&other) {
+            assert_eq!(ret.as_float(), 2.0);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_value_div() {
+        let value = Value::Integer(1);
+        let other = Value::Null;
+        if let Ok(ret) = value.div(&other) {
+            assert_eq!(ret.as_int(), 0);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Integer(1);
+        let other = Value::Integer(0);
+        if let Ok(_ret) = value.div(&other) {
+            assert!(false);
+        } else {
+            assert!(true);
+        }
+
+        let value = Value::Integer(2);
+        let other = Value::Integer(2);
+        if let Ok(ret) = value.div(&other) {
+            assert_eq!(ret.as_int(), 1);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Float(2.0);
+        let other = Value::Float(2.0);
+        if let Ok(ret) = value.div(&other) {
+            assert_eq!(ret.as_float(), 1.0);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Integer(2);
+        let other = Value::Float(2.0);
+        if let Ok(ret) = value.div(&other) {
+            assert_eq!(ret.as_float(), 1.0);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Float(2.0);
+        let other = Value::Integer(2);
+        if let Ok(ret) = value.div(&other) {
+            assert_eq!(ret.as_float(), 1.0);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_value_modulus() {
+        let value = Value::Integer(1);
+        let other = Value::Null;
+        if let Ok(ret) = value.modulus(&other) {
+            assert_eq!(ret.as_int(), 0);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Integer(1);
+        let other = Value::Integer(0);
+        if let Ok(_ret) = value.modulus(&other) {
+            assert!(false);
+        } else {
+            assert!(true);
+        }
+
+        let value = Value::Integer(5);
+        let other = Value::Integer(3);
+        if let Ok(ret) = value.modulus(&other) {
+            assert_eq!(ret.as_int(), 2);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Float(5.0);
+        let other = Value::Float(3.0);
+        if let Ok(ret) = value.modulus(&other) {
+            assert_eq!(ret.as_float(), 2.0);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Integer(5);
+        let other = Value::Float(3.0);
+        if let Ok(ret) = value.modulus(&other) {
+            assert_eq!(ret.as_float(), 2.0);
+        } else {
+            assert!(false);
+        }
+
+        let value = Value::Float(5.0);
+        let other = Value::Integer(3);
+        if let Ok(ret) = value.modulus(&other) {
+            assert_eq!(ret.as_float(), 2.0);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_value_data_type() {
+        let value = Value::Integer(1);
+        let ret = value.data_type();
+        assert_eq!(ret.is_int(), true);
+
+        let value = Value::Float(1.0);
+        let ret = value.data_type();
+        assert_eq!(ret.is_float(), true);
+
+        let value = Value::Text("hello".to_string());
+        let ret = value.data_type();
+        assert_eq!(ret.is_text(), true);
+
+        let value = Value::Boolean(false);
+        let ret = value.data_type();
+        assert_eq!(ret.is_type(DataType::Boolean), true);
+
+        let value = Value::DateTime(1704890191);
+        let ret = value.data_type();
+        assert_eq!(ret.is_datetime(), true);
+
+        let value = Value::Date(1704890191);
+        let ret = value.data_type();
+        assert_eq!(ret.is_date(), true);
+
+        let value = Value::Time("12:36:31".to_string());
+        let ret = value.data_type();
+        assert_eq!(ret.is_time(), true);
+
+        let value = Value::Null;
+        let ret = value.data_type();
+        assert_eq!(ret.is_type(DataType::Null), true);
     }
 
     #[test]
     fn test_value_literal() {
+        let value = Value::Integer(1);
+        let ret = value.literal();
+        println!("literal: {}", ret);
+        assert_eq!(ret, "1");
+
+        let value = Value::Float(1.0);
+        let ret = value.literal();
+        println!("literal: {}", ret);
+        assert_eq!(ret, "1");
+
+        let value = Value::Float(1.1);
+        let ret = value.literal();
+        println!("literal: {}", ret);
+        assert_eq!(ret, "1.1");
+
+        let value = Value::Text("hello".to_string());
+        let ret = value.literal();
+        println!("literal: {}", ret);
+        assert_eq!(ret, "hello");
+
+        let value = Value::Boolean(false);
+        let ret = value.literal();
+        println!("literal: {}", ret);
+        assert_eq!(ret, "false");
+
+        let value = Value::DateTime(1704890191);
+        let ret = value.literal();
+        println!("literal: {}", ret);
+        assert_eq!(ret, "2024-01-10 12:36:31.000");
+
+        let value = Value::Date(1704890191);
+        let ret = value.literal();
+        println!("literal: {}", ret);
+        assert_eq!(ret, "2024-01-10");
+
+        let value = Value::Time("12:36:31".to_string());
+        let ret = value.literal();
+        println!("literal: {}", ret);
+        assert_eq!(ret, "12:36:31");
+
+        let value = Value::Null;
+        let ret = value.literal();
+        println!("literal: {}", ret);
+        assert_eq!(ret, "Null");
     }
 
     #[test]
     fn test_value_as_int() {
+        let value = Value::Integer(1);
+        let ret = value.as_int();
+        assert_eq!(ret, 1);
+
+        let value = Value::Null;
+        let ret = value.as_int();
+        assert_eq!(ret, 0);
     }
 
     #[test]
     fn test_value_as_float() {
+        let value = Value::Float(1.0);
+        let ret = value.as_float();
+        assert_eq!(ret, 1.0);
+
+        let value = Value::Null;
+        let ret = value.as_float();
+        assert_eq!(ret, 0f64);
     }
 
     #[test]
     fn test_value_as_text() {
+        let value = Value::Text("hello".to_string());
+        let ret = value.as_text();
+        assert_eq!(ret, "hello");
+
+        let value = Value::Null;
+        let ret = value.as_text();
+        assert_eq!(ret, "");
     }
 
     #[test]
     fn test_value_as_bool() {
+        let value = Value::Boolean(true);
+        let ret = value.as_bool();
+        assert_eq!(ret, true);
+
+        let value = Value::Null;
+        let ret = value.as_bool();
+        assert_eq!(ret, false);
     }
 
     #[test]
     fn test_value_as_date_time() {
+        let value = Value::DateTime(1704890191);
+        let ret = value.as_date_time();
+        assert_eq!(ret, 1704890191);
+
+        let value = Value::Null;
+        let ret = value.as_date_time();
+        assert_eq!(ret, 0);
     }
 
     #[test]
     fn test_value_as_date() {
+        let value = Value::Date(1704890191);
+        let ret = value.as_date();
+        assert_eq!(ret, 1704890191);
+
+        let value = Value::Null;
+        let ret = value.as_date();
+        assert_eq!(ret, 0);
     }
 
     #[test]
     fn test_value_as_time() {
+        let value = Value::Time("12:36:31".to_string());
+        let ret = value.as_time();
+        assert_eq!(ret, "12:36:31");
+
+        let value = Value::Null;
+        let ret = value.as_time();
+        assert_eq!(ret, "");
     }
 }
