@@ -671,85 +671,709 @@ mod tests {
 
         buf.clear();
         buf.push(Value::Text("HELLO".to_string()));
-        let Value::Text(v) = text_lowercase(buf);
-        assert_eq!(v, "hello");
+        if let Value::Text(v) = text_lowercase(buf) {
+            assert_eq!(v, "hello");
+        } else {
+            assert!(false);
+        }
     }
 
-    fn test_text_uppercase() {}
+    #[test]
+    fn test_text_uppercase() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_text_reverse() {}
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        if let Value::Text(v) = text_uppercase(buf) {
+            assert_eq!(v, "HELLO");
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_text_replicate() {}
+    #[test]
+    fn test_text_reverse() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_text_space() {}
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        if let Value::Text(v) = text_reverse(buf) {
+            assert_eq!(v, "olleh");
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_text_trim() {}
+    #[test]
+    fn test_text_replicate() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_text_left_trim() {}
+        buf.clear();
+        buf.push(Value::Text("a".to_string()));
+        buf.push(Value::Integer(3));
+        if let Value::Text(v) = text_replicate(buf) {
+            assert_eq!(v, "aaa");
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_text_right_trim() {}
+    #[test]
+    fn test_text_space() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_text_len() {}
+        buf.clear();
+        buf.push(Value::Integer(3));
+        if let Value::Text(v) = text_space(buf) {
+            assert_eq!(v, "   ");
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_text_ascii() {}
+    #[test]
+    fn test_text_trim() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_text_left() {}
+        buf.clear();
+        buf.push(Value::Text(" hello ".to_string()));
+        if let Value::Text(v) = text_trim(buf) {
+            assert_eq!(v, "hello");
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_text_datalength() {}
+    #[test]
+    fn test_text_left_trim() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_text_char() {}
+        buf.clear();
+        buf.push(Value::Text(" hello".to_string()));
+        if let Value::Text(v) = text_left_trim(buf) {
+            assert_eq!(v, "hello");
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_text_replace() {}
+    #[test]
+    fn test_text_right_trim() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_text_substring() {}
+        buf.clear();
+        buf.push(Value::Text("hello ".to_string()));
+        if let Value::Text(v) = text_right_trim(buf) {
+            assert_eq!(v, "hello");
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_text_stuff() {}
+    #[test]
+    fn test_text_len() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_text_right() {}
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        if let Value::Integer(v) = text_len(buf) {
+            assert_eq!(v, "hello".len() as i64);
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_text_translate() {}
+    #[test]
+    fn test_text_ascii() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_text_unicode() {}
+        buf.clear();
+        buf.push(Value::Text("".to_string()));
+        if let Value::Integer(v) = text_ascii(buf.to_owned()) {
+            assert_eq!(v, 0);
+        } else {
+            assert!(false);
+        }
 
-    fn test_text_soundex() {}
+        buf.clear();
+        buf.push(Value::Text("a".to_string()));
+        if let Value::Integer(v) = text_ascii(buf.to_owned()) {
+            assert_eq!(v, 97);
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_text_concat() {}
+    #[test]
+    fn test_text_left() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("".to_string()));
+        if let Value::Text(v) = text_left(buf.to_owned()) {
+            assert_eq!(v, "");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Integer(6));
+        if let Value::Text(v) = text_left(buf.to_owned()) {
+            assert_eq!(v, "hello");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Integer(2));
+        if let Value::Text(v) = text_left(buf.to_owned()) {
+            assert_eq!(v, "he");
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_text_datalength() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("".to_string()));
+        if let Value::Integer(v) = text_datalength(buf.to_owned()) {
+            assert_eq!(v, 0);
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        if let Value::Integer(v) = text_datalength(buf.to_owned()) {
+            assert_eq!(v, 5);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_text_char() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Integer(-1));
+        if let Value::Text(v) = text_char(buf.to_owned()) {
+            assert_eq!(v, "");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Integer(97));
+        if let Value::Text(v) = text_char(buf.to_owned()) {
+            assert_eq!(v, "a");
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_text_replace() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Text("he".to_string()));
+        buf.push(Value::Text("eh".to_string()));
+        if let Value::Text(v) = text_replace(buf.to_owned()) {
+            assert_eq!(v, "ehllo");
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_text_substring() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Integer(7));
+        buf.push(Value::Integer(2));
+        if let Value::Text(v) = text_substring(buf.to_owned()) {
+            assert_eq!(v, "hello");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Integer(1));
+        buf.push(Value::Integer(-1));
+        if let Value::Text(v) = text_substring(buf.to_owned()) {
+            assert_eq!(v, "");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Integer(1));
+        buf.push(Value::Integer(2));
+        if let Value::Text(v) = text_substring(buf.to_owned()) {
+            assert_eq!(v, "he");
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_text_stuff() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("".to_string()));
+        buf.push(Value::Integer(1));
+        buf.push(Value::Integer(2));
+        buf.push(Value::Text("world".to_string()));
+        if let Value::Text(v) = text_stuff(buf.to_owned()) {
+            assert_eq!(v, "");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Integer(7));
+        buf.push(Value::Integer(2));
+        buf.push(Value::Text("world".to_string()));
+        if let Value::Text(v) = text_stuff(buf.to_owned()) {
+            assert_eq!(v, "hello");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Integer(1));
+        buf.push(Value::Integer(2));
+        buf.push(Value::Text("aa".to_string()));
+        if let Value::Text(v) = text_stuff(buf.to_owned()) {
+            assert_eq!(v, "aallo");
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_text_right() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("".to_string()));
+        buf.push(Value::Integer(1));
+        if let Value::Text(v) = text_right(buf.to_owned()) {
+            assert_eq!(v, "");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Integer(6));
+        if let Value::Text(v) = text_right(buf.to_owned()) {
+            assert_eq!(v, "hello");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Integer(2));
+        if let Value::Text(v) = text_right(buf.to_owned()) {
+            assert_eq!(v, "lo");
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_text_translate() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Text("he".to_string()));
+        buf.push(Value::Text("aaa".to_string()));
+        if let Value::Text(v) = text_translate(buf.to_owned()) {
+            assert_eq!(v, "");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Text("he".to_string()));
+        buf.push(Value::Text("aa".to_string()));
+        if let Value::Text(v) = text_translate(buf.to_owned()) {
+            assert_eq!(v, "aallo");
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_text_unicode() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("aa".to_string()));
+        if let Value::Integer(v) = text_unicode(buf.to_owned()) {
+            assert_eq!(v, 97);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_text_soundex() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("".to_string()));
+        if let Value::Text(v) = text_soundex(buf.to_owned()) {
+            assert_eq!(v, "");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text(">>>>".to_string()));
+        if let Value::Text(v) = text_soundex(buf.to_owned()) {
+            assert_eq!(v, ">000");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text(">>>".to_string()));
+        if let Value::Text(v) = text_soundex(buf.to_owned()) {
+            assert_eq!(v, ">000");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text(">>>>>".to_string()));
+        if let Value::Text(v) = text_soundex(buf.to_owned()) {
+            assert_eq!(v, ">000");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Text("BFPVC".to_string()));
+        if let Value::Text(v) = text_soundex(buf.to_owned()) {
+            assert_eq!(v, "B111");
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_text_concat() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Text("world".to_string()));
+        if let Value::Text(v) = text_concat(buf) {
+            assert_eq!(v, "helloworld");
+        } else {
+            assert!(false);
+        }
+    }
 
     // Date functions
 
-    fn test_data_current_date() {}
+    #[test]
+    fn test_date_current_date() {
+        let buf: Vec<Value> = Vec::new();
 
-    fn test_data_current_time() {}
+        if let Value::Date(v) = date_current_date(buf) {
+            println!("date_current_date: {}", v);
+            assert_ne!(v, 0);
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_data_current_timestamp() {}
+    #[test]
+    fn test_date_current_time() {
+        let buf: Vec<Value> = Vec::new();
 
-    fn test_data_make_date() {}
+        if let Value::Time(v) = date_current_time(buf) {
+            println!("date_current_time: {}", v);
+            assert_ne!(v, "");
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_date_current_timestamp() {
+        let buf: Vec<Value> = Vec::new();
+
+        if let Value::DateTime(v) = date_current_timestamp(buf) {
+            println!("date_current_timestamp: {}", v);
+            assert_ne!(v, 0);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_date_make_date() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Integer(2024));
+        buf.push(Value::Integer(1));
+        if let Value::Date(v) = date_make_date(buf) {
+            println!("date_make_date: {}", v);
+            assert_ne!(v, 0);
+        } else {
+            assert!(false);
+        }
+    }
 
     // Numeric functions
 
-    fn test_numeric_abs() {}
+    #[test]
+    fn test_numeric_abs() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_numeric_pi() {}
+        buf.clear();
+        buf.push(Value::Integer(1));
+        if let Value::Integer(v) = numeric_abs(buf.to_owned()) {
+            assert_eq!(v, 1);
+        } else {
+            assert!(false);
+        }
 
-    fn test_numeric_floor() {}
+        buf.clear();
+        buf.push(Value::Integer(-1));
+        if let Value::Integer(v) = numeric_abs(buf.to_owned()) {
+            assert_eq!(v, 1);
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_numeric_round() {}
+    #[test]
+    fn test_numeric_pi() {
+        let buf: Vec<Value> = Vec::new();
 
-    fn test_numeric_square() {}
+        if let Value::Float(v) = numeric_pi(buf) {
+            assert_eq!(v, std::f64::consts::PI);
+        } else {
+            assert!(false);
+        }
+    }
 
-    fn test_numeric_sin() {}
+    #[test]
+    fn test_numeric_floor() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_numeric_asin() {}
+        buf.clear();
+        buf.push(Value::Float(1.1));
+        if let Value::Integer(v) = numeric_floor(buf.to_owned()) {
+            assert_eq!(v, 1);
+        } else {
+            assert!(false);
+        }
 
-    fn test_numeric_cos() {}
+        buf.clear();
+        buf.push(Value::Float(1.5));
+        if let Value::Integer(v) = numeric_floor(buf.to_owned()) {
+            assert_eq!(v, 1);
+        } else {
+            assert!(false);
+        }
 
-    fn test_numeric_tan() {}
+        buf.clear();
+        buf.push(Value::Float(1.9));
+        if let Value::Integer(v) = numeric_floor(buf.to_owned()) {
+            assert_eq!(v, 1);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_numeric_round() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Float(1.1));
+        if let Value::Integer(v) = numeric_round(buf.to_owned()) {
+            assert_eq!(v, 1);
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Float(1.5));
+        if let Value::Integer(v) = numeric_round(buf.to_owned()) {
+            assert_eq!(v, 2);
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Float(1.9));
+        if let Value::Integer(v) = numeric_round(buf.to_owned()) {
+            assert_eq!(v, 2);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_numeric_square() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Integer(2));
+        if let Value::Integer(v) = numeric_square(buf) {
+            assert_eq!(v, 4);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_numeric_sin() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Float(0f64));
+        if let Value::Float(v) = numeric_sin(buf.to_owned()) {
+            assert_eq!(v, 0f64);
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Float(90f64));
+        if let Value::Float(v) = numeric_sin(buf.to_owned()) {
+            assert_ne!(v, 0f64);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_numeric_asin() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Float(0f64));
+        if let Value::Float(v) = numeric_asin(buf) {
+            assert_eq!(v, 0f64);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_numeric_cos() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Float(0f64));
+        if let Value::Float(v) = numeric_cos(buf) {
+            assert_eq!(v, 1f64);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_numeric_tan() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Float(0f64));
+        if let Value::Float(v) = numeric_tan(buf) {
+            assert_eq!(v, 0f64);
+        } else {
+            assert!(false);
+        }
+    }
 
     // General functions
 
-    fn test_general_is_null() {}
+    #[test]
+    fn test_general_is_null() {
+        let mut buf: Vec<Value> = Vec::new();
 
-    fn test_general_is_numeric() {}
+        buf.clear();
+        buf.push(Value::Integer(1));
+        if let Value::Boolean(v) = general_is_null(buf.to_owned()) {
+            assert_eq!(v, false);
+        } else {
+            assert!(false);
+        }
 
-    fn test_general_type_of() {}
+        buf.clear();
+        buf.push(Value::Null);
+        if let Value::Boolean(v) = general_is_null(buf.to_owned()) {
+            assert_eq!(v, true);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_general_is_numeric() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("".to_string()));
+        if let Value::Boolean(v) = general_is_numeric(buf.to_owned()) {
+            assert_eq!(v, false);
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Integer(1));
+        if let Value::Boolean(v) = general_is_numeric(buf.to_owned()) {
+            assert_eq!(v, true);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_general_type_of() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("".to_string()));
+        if let Value::Text(v) = general_type_of(buf.to_owned()) {
+            assert_eq!(v, "Text");
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Integer(1));
+        if let Value::Text(v) = general_type_of(buf.to_owned()) {
+            assert_eq!(v, "Integer");
+        } else {
+            assert!(false);
+        }
+    }
 }
