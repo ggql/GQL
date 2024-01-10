@@ -142,9 +142,9 @@ fn handle_pagination_input(current_page: usize, number_of_pages: usize) -> Pagin
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use gitql_ast::value::Value;
     use super::*;
+    use gitql_ast::value::Value;
+    use std::collections::HashMap;
 
     #[test]
     fn test_render_objects() {
@@ -157,7 +157,9 @@ mod tests {
         render_objects(&mut groups, &hidden_selections, pagination, page_size);
         assert_eq!(groups.is_empty(), true);
 
-        group.push(GQLObject{ attributes: Default::default()});
+        group.push(GQLObject {
+            attributes: Default::default(),
+        });
 
         groups.clear();
         groups.push(group.to_owned());
@@ -191,7 +193,7 @@ mod tests {
         attributes.insert("title1".to_string(), Value::Text("value1".to_string()));
         attributes.insert("title2".to_string(), Value::Text("value2".to_string()));
 
-        group.push(GQLObject{ attributes });
+        group.push(GQLObject { attributes });
 
         print_group_as_table(&titles, table_headers, &group);
     }

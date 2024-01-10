@@ -33,7 +33,9 @@ mod tests {
             assert_eq!(item.len(), 0);
         }
 
-        group.push(GQLObject{ attributes: Default::default()});
+        group.push(GQLObject {
+            attributes: Default::default(),
+        });
 
         groups.clear();
         groups.push(group.to_owned());

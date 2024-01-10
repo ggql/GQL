@@ -51,8 +51,8 @@ impl DiagnosticReporter {
 
 #[cfg(test)]
 mod tests {
-    use gitql_parser::tokenizer::Location;
     use super::*;
+    use gitql_parser::tokenizer::Location;
 
     #[test]
     fn test_report_error() {
@@ -63,7 +63,10 @@ mod tests {
     #[test]
     fn test_report_gql_error() {
         let mut reporter: DiagnosticReporter = Default::default();
-        let error: GQLError = GQLError{ message: "hello gql error".to_string(), location: Location { start: 0, end: 0 } };
+        let error: GQLError = GQLError {
+            message: "hello gql error".to_string(),
+            location: Location { start: 0, end: 0 },
+        };
         reporter.report_gql_error(error);
     }
 
