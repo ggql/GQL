@@ -658,3 +658,98 @@ fn general_type_of(inputs: Vec<Value>) -> Value {
     let input_type = inputs[0].data_type();
     Value::Text(input_type.literal().to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // String functions
+
+    #[test]
+    fn test_text_lowercase() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text("HELLO".to_string()));
+        let Value::Text(v) = text_lowercase(buf);
+        assert_eq!(v, "hello");
+    }
+
+    fn test_text_uppercase() {}
+
+    fn test_text_reverse() {}
+
+    fn test_text_replicate() {}
+
+    fn test_text_space() {}
+
+    fn test_text_trim() {}
+
+    fn test_text_left_trim() {}
+
+    fn test_text_right_trim() {}
+
+    fn test_text_len() {}
+
+    fn test_text_ascii() {}
+
+    fn test_text_left() {}
+
+    fn test_text_datalength() {}
+
+    fn test_text_char() {}
+
+    fn test_text_replace() {}
+
+    fn test_text_substring() {}
+
+    fn test_text_stuff() {}
+
+    fn test_text_right() {}
+
+    fn test_text_translate() {}
+
+    fn test_text_unicode() {}
+
+    fn test_text_soundex() {}
+
+    fn test_text_concat() {}
+
+    // Date functions
+
+    fn test_data_current_date() {}
+
+    fn test_data_current_time() {}
+
+    fn test_data_current_timestamp() {}
+
+    fn test_data_make_date() {}
+
+    // Numeric functions
+
+    fn test_numeric_abs() {}
+
+    fn test_numeric_pi() {}
+
+    fn test_numeric_floor() {}
+
+    fn test_numeric_round() {}
+
+    fn test_numeric_square() {}
+
+    fn test_numeric_sin() {}
+
+    fn test_numeric_asin() {}
+
+    fn test_numeric_cos() {}
+
+    fn test_numeric_tan() {}
+
+    // General functions
+
+    fn test_general_is_null() {}
+
+    fn test_general_is_numeric() {}
+
+    fn test_general_type_of() {}
+}
