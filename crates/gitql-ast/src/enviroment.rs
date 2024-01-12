@@ -79,3 +79,113 @@ impl Enviroment {
         self.scopes.clear()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_enviroment_define() {
+        let mut env = Enviroment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let s = "field".to_string();
+        let t = DataType::Integer;
+
+        env.define(s.to_owned(), t);
+        assert_eq!(env.scopes[&s.to_owned()].is_int(), true);
+    }
+
+    #[test]
+    fn test_enviroment_define_global() {
+        let mut env = Enviroment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let s = "field".to_string();
+        let t = DataType::Integer;
+
+        env.define_global(s.to_owned(), t);
+        assert_eq!(env.globals_types[&s.to_owned()].is_int(), true);
+    }
+
+    #[test]
+    fn test_enviroment_contains() {
+        let mut env = Enviroment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let s = "field".to_string();
+        let t = DataType::Integer;
+
+        env.define(s.to_owned(), t.to_owned());
+        env.define_global(s.to_owned(), t.to_owned());
+
+        let ret = env.contains(&s.to_owned());
+        assert_eq!(ret, true);
+
+        let ret = env.contains(&"invalid".to_string());
+        assert_eq!(ret, false);
+    }
+
+    #[test]
+    fn test_enviroment_resolve_type() {
+        let mut env = Enviroment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let s = "field1".to_string();
+        let t = DataType::Integer;
+
+        env.define(s.to_owned(), t.to_owned());
+
+        let s = "@field2".to_string();
+        let t = DataType::Integer;
+
+        env.define_global(s.to_owned(), t.to_owned());
+
+        if let Some(ret) = env.resolve_type(&"@field2".to_string()) {
+            assert_eq!(ret.is_int(), true);
+        } else {
+            assert!(false);
+        }
+
+        if let Some(ret) = env.resolve_type(&"field1".to_string()) {
+            assert_eq!(ret.is_int(), true);
+        } else {
+            assert!(false);
+        }
+
+        if let None = env.resolve_type(&"@field1".to_string()) {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_enviroment_clear_session() {
+        let mut env = Enviroment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let s = "field".to_string();
+        let t = DataType::Integer;
+
+        env.define(s.to_owned(), t);
+
+        env.clear_session();
+        assert_eq!(env.scopes.len(), 0);
+    }
+}
