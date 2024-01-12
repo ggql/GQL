@@ -112,3 +112,153 @@ fn aggregation_average(field_name: &str, objects: &[GQLObject]) -> Value {
 fn aggregation_count(_field_name: &str, objects: &[GQLObject]) -> Value {
     Value::Integer(objects.len() as i64)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_aggregation_max() {
+        let mut obj1: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj1.attributes
+            .insert("field1".to_string(), Value::Integer(1));
+
+        let mut obj2: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj2.attributes
+            .insert("field1".to_string(), Value::Integer(2));
+
+        let mut obj3: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj3.attributes
+            .insert("field1".to_string(), Value::Integer(3));
+
+        let objects = vec![obj1, obj2, obj3];
+
+        if let Value::Integer(v) = aggregation_max("field1", &objects) {
+            assert_eq!(v, 3);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_aggregation_min() {
+        let mut obj1: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj1.attributes
+            .insert("field1".to_string(), Value::Integer(1));
+
+        let mut obj2: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj2.attributes
+            .insert("field1".to_string(), Value::Integer(2));
+
+        let mut obj3: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj3.attributes
+            .insert("field1".to_string(), Value::Integer(3));
+
+        let objects = vec![obj1, obj2, obj3];
+
+        if let Value::Integer(v) = aggregation_min("field1", &objects) {
+            assert_eq!(v, 1);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_aggregation_sum() {
+        let mut obj1: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj1.attributes
+            .insert("field1".to_string(), Value::Integer(1));
+
+        let mut obj2: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj2.attributes
+            .insert("field1".to_string(), Value::Integer(2));
+
+        let mut obj3: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj3.attributes
+            .insert("field1".to_string(), Value::Integer(3));
+
+        let objects = vec![obj1, obj2, obj3];
+
+        if let Value::Integer(v) = aggregation_sum("field1", &objects) {
+            assert_eq!(v, 6);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_aggregation_average() {
+        let mut obj1: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj1.attributes
+            .insert("field1".to_string(), Value::Integer(1));
+
+        let mut obj2: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj2.attributes
+            .insert("field1".to_string(), Value::Integer(2));
+
+        let mut obj3: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj3.attributes
+            .insert("field1".to_string(), Value::Integer(3));
+
+        let objects = vec![obj1, obj2, obj3];
+
+        if let Value::Integer(v) = aggregation_average("field1", &objects) {
+            assert_eq!(v, 2);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_aggregation_ccount() {
+        let mut obj1: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj1.attributes
+            .insert("field1".to_string(), Value::Integer(1));
+
+        let mut obj2: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj2.attributes
+            .insert("field1".to_string(), Value::Integer(2));
+
+        let mut obj3: GQLObject = GQLObject {
+            attributes: HashMap::new(),
+        };
+        obj3.attributes
+            .insert("field1".to_string(), Value::Integer(3));
+
+        let objects = vec![obj1, obj2, obj3];
+
+        if let Value::Integer(v) = aggregation_count("field1", &objects) {
+            assert_eq!(v, 3);
+        } else {
+            assert!(false);
+        }
+    }
+}
