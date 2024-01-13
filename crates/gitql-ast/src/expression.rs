@@ -479,12 +479,12 @@ mod tests {
 
     #[test]
     fn test_stringexpression_expr_type() {
-        let express = StringExpression{
+        let express = StringExpression {
             value: "".to_string(),
-            value_type: StringValueType::Text
+            value_type: StringValueType::Text,
         };
 
-        let scope = Enviroment{
+        let scope = Enviroment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
@@ -496,7 +496,7 @@ mod tests {
 
     #[test]
     fn test_symbolexpression_expr_type() {
-        let express = SymbolExpression{
+        let express = SymbolExpression {
             value: "field".to_string(),
         };
 
@@ -511,14 +511,14 @@ mod tests {
         let ret = express.expr_type(&scope);
         assert_eq!(ret.is_text(), true);
 
-        let express = SymbolExpression{
+        let express = SymbolExpression {
             value: "title".to_string(),
         };
 
         let ret = express.expr_type(&scope);
         assert_eq!(ret.is_text(), true);
 
-        let express = SymbolExpression{
+        let express = SymbolExpression {
             value: "invalid".to_string(),
         };
 
@@ -528,7 +528,7 @@ mod tests {
 
     #[test]
     fn test_globalvariableexpression_expr_type() {
-        let express = GlobalVariableExpression{
+        let express = GlobalVariableExpression {
             name: "field".to_string(),
         };
 
@@ -538,12 +538,14 @@ mod tests {
             scopes: Default::default(),
         };
 
-        scope.globals_types.insert("field".to_string(), DataType::Text);
+        scope
+            .globals_types
+            .insert("field".to_string(), DataType::Text);
 
         let ret = express.expr_type(&scope);
         assert_eq!(ret.is_text(), true);
 
-        let express = GlobalVariableExpression{
+        let express = GlobalVariableExpression {
             name: "invalid".to_string(),
         };
 
@@ -553,7 +555,7 @@ mod tests {
 
     #[test]
     fn test_numberexpression_expr_type() {
-        let express = NumberExpression{
+        let express = NumberExpression {
             value: Value::Text("field".to_string()),
         };
 
@@ -569,9 +571,7 @@ mod tests {
 
     #[test]
     fn test_booleanexpression_expr_type() {
-        let express = BooleanExpression{
-            is_true: false
-        };
+        let express = BooleanExpression { is_true: false };
 
         let scope = Enviroment {
             globals: Default::default(),
@@ -585,8 +585,8 @@ mod tests {
 
     #[test]
     fn test_prefixunaryexpression_expr_type() {
-        let express = PrefixUnary{
-            right: Box::new(NumberExpression{ value: Value::Null }),
+        let express = PrefixUnary {
+            right: Box::new(NumberExpression { value: Value::Null }),
             op: PrefixUnaryOperator::Minus,
         };
 
@@ -599,8 +599,8 @@ mod tests {
         let ret = express.expr_type(&scope);
         assert_eq!(ret.is_int(), true);
 
-        let express = PrefixUnary{
-            right: Box::new(NumberExpression{ value: Value::Null }),
+        let express = PrefixUnary {
+            right: Box::new(NumberExpression { value: Value::Null }),
             op: PrefixUnaryOperator::Bang,
         };
 
@@ -610,10 +610,14 @@ mod tests {
 
     #[test]
     fn test_arithmeticexpression_expr_type() {
-        let express = ArithmeticExpression{
-            left: Box::new(NumberExpression{ value: Value::Integer(1)}),
+        let express = ArithmeticExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
             operator: ArithmeticOperator::Plus,
-            right: Box::new(NumberExpression{ value: Value::Integer(1)}),
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
         };
 
         let scope = Enviroment {
@@ -625,10 +629,14 @@ mod tests {
         let ret = express.expr_type(&scope);
         assert_eq!(ret.is_int(), true);
 
-        let express = ArithmeticExpression{
-            left: Box::new(NumberExpression{ value: Value::Integer(1)}),
+        let express = ArithmeticExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
             operator: ArithmeticOperator::Plus,
-            right: Box::new(NumberExpression{ value: Value::Float(1.0)}),
+            right: Box::new(NumberExpression {
+                value: Value::Float(1.0),
+            }),
         };
 
         let ret = express.expr_type(&scope);
