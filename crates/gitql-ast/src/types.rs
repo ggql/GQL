@@ -89,3 +89,122 @@ lazy_static! {
         map
     };
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_datatype_is_type() {
+        let data_type:DataType = DataType::Text;
+
+        let ret = data_type.is_type(DataType::Any);
+        assert_eq!(ret, false);
+
+        let ret = data_type.is_type(DataType::Text);
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_int() {
+        let data_type:DataType = DataType::Any;
+        let ret = data_type.is_int();
+        assert_eq!(ret, false);
+
+        let data_type:DataType = DataType::Integer;
+        let ret = data_type.is_int();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_float() {
+        let data_type:DataType = DataType::Any;
+        let ret = data_type.is_float();
+        assert_eq!(ret, false);
+
+        let data_type:DataType = DataType::Float;
+        let ret = data_type.is_float();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_number() {
+        let data_type:DataType = DataType::Any;
+        let ret = data_type.is_number();
+        assert_eq!(ret, false);
+
+        let data_type:DataType = DataType::Integer;
+        let ret = data_type.is_number();
+        assert_eq!(ret, true);
+
+        let data_type:DataType = DataType::Float;
+        let ret = data_type.is_number();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_text() {
+        let data_type:DataType = DataType::Any;
+        let ret = data_type.is_text();
+        assert_eq!(ret, false);
+
+        let data_type:DataType = DataType::Text;
+        let ret = data_type.is_text();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_time() {
+        let data_type:DataType = DataType::Any;
+        let ret = data_type.is_time();
+        assert_eq!(ret, false);
+
+        let data_type:DataType = DataType::Time;
+        let ret = data_type.is_time();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_date() {
+        let data_type:DataType = DataType::Any;
+        let ret = data_type.is_date();
+        assert_eq!(ret, false);
+
+        let data_type:DataType = DataType::Date;
+        let ret = data_type.is_date();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_datetime() {
+        let data_type:DataType = DataType::Any;
+        let ret = data_type.is_datetime();
+        assert_eq!(ret, false);
+
+        let data_type:DataType = DataType::DateTime;
+        let ret = data_type.is_datetime();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_undefined() {
+        let data_type:DataType = DataType::Any;
+        let ret = data_type.is_undefined();
+        assert_eq!(ret, false);
+
+        let data_type:DataType = DataType::Undefined;
+        let ret = data_type.is_undefined();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_literal() {
+        let data_type:DataType = DataType::Any;
+        let ret = data_type.literal();
+        assert_eq!(ret, "Any");
+
+        let data_type:DataType = DataType::Text;
+        let ret = data_type.literal();
+        assert_eq!(ret, "Text");
+    }
+}
