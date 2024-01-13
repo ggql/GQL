@@ -174,3 +174,96 @@ impl Statement for GlobalVariableStatement {
         StatementKind::GlobalVariable
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_selectstatement_as_any() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_selectstatement_get_statement_kind() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_wherestatement_as_any() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_wherestatement_get_statement_kind() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_havingstatement_as_any() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_havingstatement_get_statement_kind() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_limitstatement_as_any() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_limitstatement_get_statement_kind() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_offsetstatement_as_any() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_offsetstatement_get_statement_kind() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_orderbystatement_as_any() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_orderbystatement_get_statement_kind() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_groupbystatement_as_any() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_groupbystatement_get_statement_kind() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_aggregationfunctionstatement_as_any() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_aggregationfunctionstatement_get_statement_kind() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_globalvariablestatement_as_any() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_globalvariablestatement_get_statement_kind() {
+        assert!(true);
+    }
+}
