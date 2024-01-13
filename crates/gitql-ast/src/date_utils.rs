@@ -142,3 +142,126 @@ pub fn is_valid_datetime_format(datetime_str: &str) -> bool {
     // Check the validity of date and time components
     is_valid_date_format(parts[0]) && is_valid_time_format(parts[1])
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_unix_timestamp_ms() {
+        let ret = get_unix_timestamp_ms();
+        println!("get_unix_timestamp_ms: {}", ret);
+        assert_ne!(ret, 0);
+    }
+
+    #[test]
+    fn test_time_stamp_to_date() {
+        let ret = time_stamp_to_date(1705117592);
+        println!("time_stamp_to_date: {}", ret);
+        assert_ne!(ret, "");
+    }
+
+    #[test]
+    fn test_time_stamp_to_time() {
+        let ret = time_stamp_to_time(1705117592);
+        println!("time_stamp_to_time: {}", ret);
+        assert_ne!(ret, "");
+    }
+
+    #[test]
+    fn test_time_stamp_to_date_time() {
+        let ret = time_stamp_to_date_time(1705117592);
+        println!("time_stamp_to_date_time: {}", ret);
+        assert_ne!(ret, "");
+    }
+
+    #[test]
+    fn test_date_to_time_stamp() {
+        let ret = date_to_time_stamp("2024-01-10 12:36:31");
+        println!("date_to_time_stamp: {}", ret);
+        assert_eq!(ret, 0);
+
+        let ret = date_to_time_stamp("2024-01-10");
+        println!("date_to_time_stamp: {}", ret);
+        assert_ne!(ret, 0);
+    }
+
+    #[test]
+    fn test_date_time_to_time_stamp() {
+        let ret = date_time_to_time_stamp("2024-01-10 12:36:31.000");
+        println!("date_time_to_time_stamp: {}", ret);
+        assert_ne!(ret, 0);
+
+        let ret = date_time_to_time_stamp("2024-01-10 12:36:31");
+        println!("date_time_to_time_stamp: {}", ret);
+        assert_ne!(ret, 0);
+
+        let ret = date_time_to_time_stamp("invalid");
+        println!("date_time_to_time_stamp: {}", ret);
+        assert_eq!(ret, 0);
+    }
+
+    #[test]
+    fn test_time_stamp_from_year_and_day() {
+        let ret = time_stamp_from_year_and_day(2024, 1);
+        println!("time_stamp_from_year_and_day: {}", ret);
+        assert_ne!(ret, 0);
+    }
+
+    #[test]
+    fn test_is_valid_time_format() {
+        let ret = is_valid_time_format("");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_time_format("12:36:3");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_time_format("12:36:31.0000");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_time_format("12:36:31.000.000");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_time_format("12:36:61.000");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_time_format("12:36:31.000");
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_is_valid_date_format() {
+        let ret = is_valid_date_format("");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_date_format("2024-01-100");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_date_format("2024-01-10-00");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_date_format("2024-01-40");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_date_format("2024-01-10");
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_is_valid_datetime_format() {
+        let ret = is_valid_datetime_format("");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_datetime_format("2024-01-10 12:36:31.0000");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_datetime_format("2024-01-10 12:36:31.000 000");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_datetime_format("2024-01-10 12:36:71.000");
+        assert_eq!(ret, false);
+
+        let ret = is_valid_datetime_format("2024-01-10 12:36:31.000");
+        assert_eq!(ret, true);
+    }
+}
