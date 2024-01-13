@@ -467,3 +467,204 @@ impl Expression for NullExpression {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_expression_is_const() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_stringexpression_expr_type() {
+        let express = StringExpression{
+            value: "".to_string(),
+            value_type: StringValueType::Text
+        };
+
+        let scope = Enviroment{
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_text(), true);
+    }
+
+    #[test]
+    fn test_symbolexpression_expr_type() {
+        let express = SymbolExpression{
+            value: "field".to_string(),
+        };
+
+        let mut scope = Enviroment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        scope.scopes.insert("field".to_string(), DataType::Text);
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_text(), true);
+
+        let express = SymbolExpression{
+            value: "title".to_string(),
+        };
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_text(), true);
+
+        let express = SymbolExpression{
+            value: "invalid".to_string(),
+        };
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_undefined(), true);
+    }
+
+    #[test]
+    fn test_globalvariableexpression_expr_type() {
+        let express = GlobalVariableExpression{
+            name: "field".to_string(),
+        };
+
+        let mut scope = Enviroment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        scope.globals_types.insert("field".to_string(), DataType::Text);
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_text(), true);
+
+        let express = GlobalVariableExpression{
+            name: "invalid".to_string(),
+        };
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_undefined(), true);
+    }
+
+    #[test]
+    fn test_numberexpression_expr_type() {
+        let express = NumberExpression{
+            value: Value::Text("field".to_string()),
+        };
+
+        let scope = Enviroment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_text(), true);
+    }
+
+    #[test]
+    fn test_booleanexpression_expr_type() {
+        let express = BooleanExpression{
+            is_true: false
+        };
+
+        let scope = Enviroment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_type(DataType::Boolean), true);
+    }
+
+    #[test]
+    fn test_prefixunaryexpression_expr_type() {
+        let express = PrefixUnary{
+            right: Box::new(NumberExpression{ value: Value::Null }),
+            op: PrefixUnaryOperator::Minus,
+        };
+
+        let scope = Enviroment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_int(), true);
+
+        let express = PrefixUnary{
+            right: Box::new(NumberExpression{ value: Value::Null }),
+            op: PrefixUnaryOperator::Bang,
+        };
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_type(DataType::Boolean), true);
+    }
+
+    #[test]
+    fn test_arithmeticexpression_expr_type() {
+        let express = ArithmeticExpression{
+            left: Box::new(NumberExpression{ value: Value::Integer(1)}),
+            operator: ArithmeticOperator::Plus,
+            right: Box::new(NumberExpression{ value: Value::Integer(1)}),
+        };
+
+        let scope = Enviroment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_int(), true);
+
+        let express = ArithmeticExpression{
+            left: Box::new(NumberExpression{ value: Value::Integer(1)}),
+            operator: ArithmeticOperator::Plus,
+            right: Box::new(NumberExpression{ value: Value::Float(1.0)}),
+        };
+
+        let ret = express.expr_type(&scope);
+        assert_eq!(ret.is_float(), true);
+    }
+
+    #[test]
+    fn test_comparisionexpression_expr_type() {}
+
+    #[test]
+    fn test_likeexpression_expr_type() {}
+
+    #[test]
+    fn test_globalexpression_expr_type() {}
+
+    #[test]
+    fn test_logicalexpression_expr_type() {}
+
+    #[test]
+    fn test_bitwiseexpression_expr_type() {}
+
+    #[test]
+    fn test_callexpression_expr_type() {}
+
+    #[test]
+    fn test_betweenexpression_expr_type() {}
+
+    #[test]
+    fn test_caseexpression_expr_type() {}
+
+    #[test]
+    fn test_inexpression_expr_type() {}
+
+    #[test]
+    fn test_isnullexpression_expr_type() {}
+
+    #[test]
+    fn test_nullexpression_expr_type() {}
+}
