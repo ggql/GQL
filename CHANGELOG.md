@@ -1,6 +1,43 @@
 Change Log
 ==========
 
+Version 0.12.0 *(2024-01-13)*
+-----------------------------
+
+* Change GitQLObject structure to get more speedup and keep values sorted.
+* Supports `LIMIT OFFSET` shorthand inspired by MySQL.
+* Implement `HOUR` Date functions.
+* Implement `STRCMP` Text Function.
+* Implement `GREATEST`, `LEAST` General function.
+* Implement `ISDATE` Date function.
+* Optimize `in` expression in case of empty list.
+* Add Support for `NOT IN` expression.
+* Report error if user write un expected content after valid statement.
+* Fix Date and DateTime incorrect equals #71
+* Allow `BETWEEN` to work with any type.
+* Fix ArithmeticExpression expr_type if any side is float
+
+Version 0.11.0 *(2023-12-29)*
+-----------------------------
+
+* Support Assignment expressions `@name := value`.
+* Allow Assignment expressions to store aggregation value.
+* Allow lazy evaluate any expression that has aggregation value.
+* Prevent assign aggregation value to global variable with SET statement.
+* Support creating identifier using backticks.
+* Support `Either` type in the type system.
+* Support `Optional` type in the type system.
+* Support `Varargs` type in the type system.
+* Implement `ACOS`, `ATAN`, `ATN2` and `SIGN` Math functions.
+* Implement `CHARINDEX` Text function.
+* Implement `DAYNAME`, `MONTHNAME` Date functions.
+* Update `CONCAT` Text function to accept 2 or more Text values.
+* Support Aggregation `MAX`, `MIN` to work with different types.
+* Support Implicit Type casting for Function arguments.
+* Revamp GQLError to a new Diagnostic representation.
+* Migrate to Gix v0.57.0.
+* Update `CONCAT` function to work with any value type.
+
 Version 0.10.0 *(2023-12-08)*
 -----------------------------
 

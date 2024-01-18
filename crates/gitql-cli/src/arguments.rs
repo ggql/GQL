@@ -51,7 +51,7 @@ pub fn parse_arguments(args: &Vec<String>) -> Command {
         let arg = &args[arg_index];
 
         if !arg.starts_with('-') {
-            return Command::Error(format!("Unkown argument {}", arg));
+            return Command::Error(format!("Unknown argument {}", arg));
         }
 
         match arg.as_ref() {
@@ -111,7 +111,7 @@ pub fn parse_arguments(args: &Vec<String>) -> Command {
                 arguments.page_size = page_size;
                 arg_index += 1;
             }
-            _ => return Command::Error(format!("Unkown command {}", arg)),
+            _ => return Command::Error(format!("Unknown command {}", arg)),
         }
     }
 
@@ -143,12 +143,12 @@ pub fn parse_arguments(args: &Vec<String>) -> Command {
 pub fn print_help_list() {
     println!("GitQL is a SQL like query language to run on local repositories");
     println!();
-    println!("Usage: gitql.exe [OPTIONS]");
+    println!("Usage: gitql [OPTIONS]");
     println!();
     println!("Options:");
     println!("-r,  --repos <REPOS>        Path for local repositories to run query on");
     println!("-q,  --query <GQL Query>    GitQL query to run on selected repositories");
-    println!("-p,  --pagination           Enable print result with pagninations");
+    println!("-p,  --pagination           Enable print result with pagination");
     println!("-ps, --pagesize             Set pagination page size [default: 10]");
     println!("-a,  --analysis             Print Query analysis");
     println!("-h,  --help                 Print GitQL help");

@@ -1,15 +1,19 @@
-use gitql_ast::enviroment::Enviroment;
-use gitql_ast::enviroment::TABLES_FIELDS_NAMES;
+use gitql_ast::environment::Environment;
+use gitql_ast::environment::TABLES_FIELDS_NAMES;
 use gitql_ast::value::Value;
 use std::collections::HashMap;
+use std::num::IntErrorKind;
+use std::num::ParseIntError;
 use std::vec;
 
 use crate::context::ParserContext;
-use crate::diagnostic::GQLError;
+use crate::diagnostic::Diagnostic;
 use crate::tokenizer::Location;
 use crate::tokenizer::Token;
 use crate::tokenizer::TokenKind;
 use crate::type_checker::are_types_equals;
+use crate::type_checker::check_all_values_are_same_type;
+use crate::type_checker::is_expression_type_equals;
 use crate::type_checker::TypeCheckResult;
 
 use gitql_ast::aggregation::AGGREGATIONS;
@@ -21,204 +25,259 @@ use gitql_ast::statement::*;
 use gitql_ast::types::DataType;
 use gitql_ast::types::TABLES_FIELDS_TYPES;
 
-pub fn parse_gql(mut tokens: Vec<Token>, env: &mut Enviroment) -> Result<Query, GQLError> {
-    consume_optional_semicolon_if_exists(&mut tokens);
-
+pub fn parse_gql(tokens: Vec<Token>, env: &mut Environment) -> Result<Query, Box<Diagnostic>> {
     let mut position = 0;
     let first_token = &tokens[position];
-    match &first_token.kind {
-        TokenKind::Set => parse_set_query(env, &tokens),
-        TokenKind::Select => parse_select_query(env, &tokens),
+    let query_result = match &first_token.kind {
+        TokenKind::Set => parse_set_query(env, &tokens, &mut position),
+        TokenKind::Select => parse_select_query(env, &tokens, &mut position),
         _ => Err(un_expected_statement_error(&tokens, &mut position)),
+    };
+
+    // Consume optional `;` at the end of valid statement
+    if let Some(last_token) = tokens.get(position) {
+        if last_token.kind == TokenKind::Semicolon {
+            position += 1;
+        }
     }
+
+    // Check for un expected content after valid statement
+    if query_result.is_ok() && position < tokens.len() {
+        return Err(un_expected_content_after_correct_statement(
+            &first_token.literal,
+            &tokens,
+            &mut position,
+        ));
+    }
+
+    query_result
 }
 
-fn parse_set_query(env: &mut Enviroment, tokens: &Vec<Token>) -> Result<Query, GQLError> {
+fn parse_set_query(
+    env: &mut Environment,
+    tokens: &Vec<Token>,
+    position: &mut usize,
+) -> Result<Query, Box<Diagnostic>> {
     let len = tokens.len();
-    let mut position = 0;
     let mut context = ParserContext::default();
 
     // Consume Set keyword
-    position += 1;
+    *position += 1;
 
-    if position >= len || tokens[position].kind != TokenKind::GlobalVariable {
-        return Err(GQLError {
-            message: "Expect Global variable name start with `@` after `SET` keyword".to_owned(),
-            location: get_safe_location(tokens, position - 1),
-        });
+    if *position >= len || tokens[*position].kind != TokenKind::GlobalVariable {
+        return Err(Diagnostic::error(
+            "Expect Global variable name start with `@` after `SET` keyword",
+        )
+        .with_location(get_safe_location(tokens, *position - 1))
+        .as_boxed());
     }
 
-    let name = &tokens[position].literal;
+    let name = &tokens[*position].literal;
 
     // Consume variable name
-    position += 1;
+    *position += 1;
 
-    if position >= len
-        || (tokens[position].kind != TokenKind::Equal
-            && tokens[position].kind != TokenKind::ColonEqual)
-    {
-        return Err(GQLError {
-            message: "Expect `=` or `:=` and Value after Variable name".to_owned(),
-            location: get_safe_location(tokens, position - 1),
-        });
+    if *position >= len || !is_assignment_operator(&tokens[*position]) {
+        return Err(
+            Diagnostic::error("Expect `=` or `:=` and Value after Variable name")
+                .with_location(get_safe_location(tokens, *position - 1))
+                .as_boxed(),
+        );
     }
 
-    // Consume `=` token
-    position += 1;
+    // Consume `=` or `:=` token
+    *position += 1;
 
-    let expression = parse_expression(&mut context, env, tokens, &mut position)?;
-    let expression_type = expression.expr_type(env);
+    let aggregations_count_before = context.aggregations.len();
+    let value = parse_expression(&mut context, env, tokens, position)?;
+    let has_aggregations = context.aggregations.len() != aggregations_count_before;
 
-    env.define_global(name.to_string(), expression_type);
+    // Until supports sub queries, aggregation value can't be stored in variables
+    if has_aggregations {
+        return Err(
+            Diagnostic::error("Aggregation value can't be assigned to global variable")
+                .with_location(get_safe_location(tokens, *position - 1))
+                .as_boxed(),
+        );
+    }
 
-    let global_variable = GlobalVariableStatement {
+    env.define_global(name.to_string(), value.expr_type(env));
+
+    Ok(Query::GlobalVariableDeclaration(GlobalVariableStatement {
         name: name.to_string(),
-        value: expression,
-    };
-
-    Ok(Query::GlobalVariableDeclaration(global_variable))
+        value,
+    }))
 }
 
-fn parse_select_query(env: &mut Enviroment, tokens: &Vec<Token>) -> Result<Query, GQLError> {
+fn parse_select_query(
+    env: &mut Environment,
+    tokens: &Vec<Token>,
+    position: &mut usize,
+) -> Result<Query, Box<Diagnostic>> {
     let len = tokens.len();
-    let mut position = 0;
 
     let mut context = ParserContext::default();
-    let mut statements: HashMap<String, Box<dyn Statement>> = HashMap::new();
+    let mut statements: HashMap<&'static str, Box<dyn Statement>> = HashMap::new();
 
-    while position < len {
-        let token = &tokens[position];
+    while *position < len {
+        let token = &tokens[*position];
 
         match &token.kind {
             TokenKind::Select => {
                 if statements.contains_key("select") {
-                    return Err(GQLError {
-                        message: "You already used `select` statement ".to_owned(),
-                        location: token.location,
-                    });
+                    return Err(Diagnostic::error("You already used `SELECT` statement")
+                        .add_note("Can't use more than one `SELECT` statement in the same query")
+                        .with_location(token.location)
+                        .as_boxed());
                 }
-                let statement = parse_select_statement(&mut context, env, tokens, &mut position)?;
-                statements.insert("select".to_string(), statement);
+                let statement = parse_select_statement(&mut context, env, tokens, position)?;
+                statements.insert("select", statement);
                 context.is_single_value_query = !context.aggregations.is_empty();
             }
             TokenKind::Where => {
-                if !statements.contains_key("select") {
-                    return Err(GQLError {
-                        message: "`WHERE` must be used after `SELECT` statement".to_owned(),
-                        location: token.location,
-                    });
-                }
-
                 if statements.contains_key("where") {
-                    return Err(GQLError {
-                        message: "You already used `where` statement".to_owned(),
-                        location: token.location,
-                    });
+                    return Err(Diagnostic::error("You already used `WHERE` statement")
+                        .add_note("Can't use more than one `WHERE` statement in the same query")
+                        .with_location(token.location)
+                        .as_boxed());
                 }
 
-                let statement = parse_where_statement(&mut context, env, tokens, &mut position)?;
-                statements.insert("where".to_string(), statement);
+                let statement = parse_where_statement(&mut context, env, tokens, position)?;
+                statements.insert("where", statement);
             }
             TokenKind::Group => {
-                if !statements.contains_key("select") {
-                    return Err(GQLError {
-                        message: "`GROUP BY` must be used after `SELECT` statement".to_owned(),
-                        location: token.location,
-                    });
-                }
-
                 if statements.contains_key("group") {
-                    return Err(GQLError {
-                        message: "You already used `group by` statement".to_owned(),
-                        location: token.location,
-                    });
+                    return Err(Diagnostic::error("`You already used `GROUP BY` statement")
+                        .add_note("Can't use more than one `GROUP BY` statement in the same query")
+                        .with_location(token.location)
+                        .as_boxed());
                 }
 
-                let statement = parse_group_by_statement(&mut context, env, tokens, &mut position)?;
-                statements.insert("group".to_string(), statement);
+                let statement = parse_group_by_statement(&mut context, env, tokens, position)?;
+                statements.insert("group", statement);
             }
             TokenKind::Having => {
                 if statements.contains_key("having") {
-                    return Err(GQLError {
-                        message: "You already used `having` statement".to_owned(),
-                        location: token.location,
-                    });
+                    return Err(Diagnostic::error("You already used `HAVING` statement")
+                        .add_note("Can't use more than one `HAVING` statement in the same query")
+                        .with_location(token.location)
+                        .as_boxed());
                 }
 
                 if !statements.contains_key("group") {
-                    return Err(GQLError {
-                        message: "`HAVING` must be used after GROUP BY".to_owned(),
-                        location: token.location,
-                    });
+                    return Err(Diagnostic::error(
+                        "`HAVING` must be used after `GROUP BY` statement",
+                    )
+                    .add_note(
+                        "`HAVING` statement must be used in a query that has `GROUP BY` statement",
+                    )
+                    .with_location(token.location)
+                    .as_boxed());
                 }
 
-                let statement = parse_having_statement(&mut context, env, tokens, &mut position)?;
-                statements.insert("having".to_string(), statement);
+                let statement = parse_having_statement(&mut context, env, tokens, position)?;
+                statements.insert("having", statement);
             }
             TokenKind::Limit => {
-                if !statements.contains_key("select") {
-                    return Err(GQLError {
-                        message: "`LIMIT` must be used after `SELECT` statement".to_owned(),
-                        location: token.location,
-                    });
-                }
-
                 if statements.contains_key("limit") {
-                    return Err(GQLError {
-                        message: "you already used `limit` statement".to_owned(),
-                        location: token.location,
-                    });
+                    return Err(Diagnostic::error("You already used `LIMIT` statement")
+                        .add_note("Can't use more than one `LIMIT` statement in the same query")
+                        .with_location(token.location)
+                        .as_boxed());
                 }
 
-                let statement = parse_limit_statement(tokens, &mut position)?;
-                statements.insert("limit".to_string(), statement);
+                let statement = parse_limit_statement(tokens, position)?;
+                statements.insert("limit", statement);
+
+                // Check for Limit and Offset shortcut
+                if *position < len && tokens[*position].kind == TokenKind::Comma {
+                    // Prevent user from using offset statement more than one time
+                    if statements.contains_key("offset") {
+                        return Err(Diagnostic::error("You already used `OFFSET` statement")
+                            .add_note(
+                                "Can't use more than one `OFFSET` statement in the same query",
+                            )
+                            .with_location(token.location)
+                            .as_boxed());
+                    }
+
+                    // Consume Comma
+                    *position += 1;
+
+                    if *position >= len || tokens[*position].kind != TokenKind::Integer {
+                        return Err(Diagnostic::error(
+                            "Expects `OFFSET` amount as Integer value after `,`",
+                        )
+                        .add_help("Try to add constant Integer after comma")
+                        .add_note("`OFFSET` value must be a constant Integer")
+                        .with_location(token.location)
+                        .as_boxed());
+                    }
+
+                    let count_result: Result<usize, ParseIntError> =
+                        tokens[*position].literal.parse();
+
+                    // Report clear error for Integer parsing
+                    if let Err(error) = &count_result {
+                        if error.kind().eq(&IntErrorKind::PosOverflow) {
+                            return Err(Diagnostic::error("`OFFSET` integer value is too large")
+                                .add_help("Try to use smaller value")
+                                .add_note(&format!(
+                                    "`OFFSET` value must be between 0 and {}",
+                                    usize::MAX
+                                ))
+                                .with_location(token.location)
+                                .as_boxed());
+                        }
+
+                        return Err(Diagnostic::error("`OFFSET` integer value is invalid")
+                            .add_help(&format!(
+                                "`OFFSET` value must be between 0 and {}",
+                                usize::MAX
+                            ))
+                            .with_location(token.location)
+                            .as_boxed());
+                    }
+
+                    // Consume Offset value
+                    *position += 1;
+
+                    let count = count_result.unwrap();
+                    statements.insert("offset", Box::new(OffsetStatement { count }));
+                }
             }
             TokenKind::Offset => {
-                if !statements.contains_key("select") {
-                    return Err(GQLError {
-                        message: "`OFFSET` must be used after `SELECT` statement".to_owned(),
-                        location: token.location,
-                    });
-                }
-
                 if statements.contains_key("offset") {
-                    return Err(GQLError {
-                        message: "you already used `offset` statement".to_owned(),
-                        location: token.location,
-                    });
+                    return Err(Diagnostic::error("You already used `OFFSET` statement")
+                        .add_note("Can't use more than one `OFFSET` statement in the same query")
+                        .with_location(token.location)
+                        .as_boxed());
                 }
 
-                let statement = parse_offset_statement(tokens, &mut position)?;
-                statements.insert("offset".to_string(), statement);
+                let statement = parse_offset_statement(tokens, position)?;
+                statements.insert("offset", statement);
             }
             TokenKind::Order => {
-                if !statements.contains_key("select") {
-                    return Err(GQLError {
-                        message: "`ORDER BY` must be used after `SELECT` statement".to_owned(),
-                        location: token.location,
-                    });
-                }
-
                 if statements.contains_key("order") {
-                    return Err(GQLError {
-                        message: "you already used `order by` statement".to_owned(),
-                        location: token.location,
-                    });
+                    return Err(Diagnostic::error("You already used `ORDER BY` statement")
+                        .add_note("Can't use more than one `ORDER BY` statement in the same query")
+                        .with_location(token.location)
+                        .as_boxed());
                 }
 
-                let statement = parse_order_by_statement(&mut context, env, tokens, &mut position)?;
-                statements.insert("order".to_string(), statement);
+                let statement = parse_order_by_statement(&mut context, env, tokens, position)?;
+                statements.insert("order", statement);
             }
-            _ => return Err(un_expected_statement_error(tokens, &mut position)),
+            _ => break,
         }
     }
 
     // If any aggregation function is used, add Aggregation Functions Node to the GQL Query
     if !context.aggregations.is_empty() {
-        let aggregation_functions = AggregationFunctionsStatement {
+        let aggregation_functions = AggregationsStatement {
             aggregations: context.aggregations,
         };
-        statements.insert("aggregation".to_string(), Box::new(aggregation_functions));
+        statements.insert("aggregation", Box::new(aggregation_functions));
     }
 
     // Remove all selected fields from hidden selection
@@ -239,18 +298,19 @@ fn parse_select_query(env: &mut Enviroment, tokens: &Vec<Token>) -> Result<Query
 
 fn parse_select_statement(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Statement>, GQLError> {
+) -> Result<Box<dyn Statement>, Box<Diagnostic>> {
     // Consume select keyword
     *position += 1;
 
     if *position >= tokens.len() {
-        return Err(GQLError {
-            message: "Incomplete input for select statement".to_owned(),
-            location: get_safe_location(tokens, *position - 1),
-        });
+        return Err(Diagnostic::error("Incomplete input for select statement")
+            .add_help("Try select one or more values in the `SELECT` statement")
+            .add_note("Select statements requires at least selecting one value")
+            .with_location(get_safe_location(tokens, *position - 1))
+            .as_boxed());
     }
 
     let mut table_name = "";
@@ -284,10 +344,9 @@ fn parse_select_statement(
 
             // Assert that each selected field is unique
             if fields_names.contains(&field_name) {
-                return Err(GQLError {
-                    message: "Can't select the same field twice".to_owned(),
-                    location: get_safe_location(tokens, *position - 1),
-                });
+                return Err(Diagnostic::error("Can't select the same field twice")
+                    .with_location(get_safe_location(tokens, *position - 1))
+                    .as_boxed());
             }
 
             // Check for Field name alias
@@ -296,10 +355,9 @@ fn parse_select_statement(
                 *position += 1;
                 let alias_name_token = consume_kind(tokens, *position, TokenKind::Symbol);
                 if alias_name_token.is_err() {
-                    return Err(GQLError {
-                        message: "Expect `identifier` as field alias name".to_owned(),
-                        location: get_safe_location(tokens, *position),
-                    });
+                    return Err(Diagnostic::error("Expect `identifier` as field alias name")
+                        .with_location(get_safe_location(tokens, *position))
+                        .as_boxed());
                 }
 
                 // Register alias name
@@ -307,10 +365,12 @@ fn parse_select_statement(
                 if context.selected_fields.contains(&alias_name)
                     || alias_table.contains_key(&alias_name)
                 {
-                    return Err(GQLError {
-                        message: "You already have field with the same name".to_owned(),
-                        location: get_safe_location(tokens, *position),
-                    });
+                    return Err(
+                        Diagnostic::error("You already have field with the same name")
+                            .add_help("Try to use a new unique name for alias")
+                            .with_location(get_safe_location(tokens, *position))
+                            .as_boxed(),
+                    );
                 }
 
                 // Consume alias name
@@ -346,10 +406,10 @@ fn parse_select_statement(
 
         let table_name_token = consume_kind(tokens, *position, TokenKind::Symbol);
         if table_name_token.is_err() {
-            return Err(GQLError {
-                message: "Expect `identifier` as a table name".to_owned(),
-                location: get_safe_location(tokens, *position),
-            });
+            return Err(Diagnostic::error("Expect `identifier` as a table name")
+                .add_note("Table name must be an identifier")
+                .with_location(get_safe_location(tokens, *position))
+                .as_boxed());
         }
 
         // Consume table name
@@ -357,10 +417,10 @@ fn parse_select_statement(
 
         table_name = &table_name_token.ok().unwrap().literal;
         if !TABLES_FIELDS_NAMES.contains_key(table_name) {
-            return Err(GQLError {
-                message: "Unresolved table name".to_owned(),
-                location: get_safe_location(tokens, *position),
-            });
+            return Err(Diagnostic::error("Unresolved table name")
+                .add_help("Check the documentations to see available tables")
+                .with_location(get_safe_location(tokens, *position))
+                .as_boxed());
         }
 
         register_current_table_fields_types(table_name, env);
@@ -368,18 +428,21 @@ fn parse_select_statement(
 
     // Make sure `SELECT *` used with specific table
     if is_select_all && table_name.is_empty() {
-        return Err(GQLError {
-            message: "Expect `FROM` and table name after `SELECT *`".to_owned(),
-            location: get_safe_location(tokens, *position),
-        });
+        return Err(
+            Diagnostic::error("Expect `FROM` and table name after `SELECT *`")
+                .add_note("Select all must be used with valid table name")
+                .with_location(get_safe_location(tokens, *position))
+                .as_boxed(),
+        );
     }
 
     // Select input validations
     if !is_select_all && fields_names.is_empty() {
-        return Err(GQLError {
-            message: "Incomplete input for select statement".to_owned(),
-            location: get_safe_location(tokens, *position - 1),
-        });
+        return Err(Diagnostic::error("Incomplete input for select statement")
+            .add_help("Try select one or more values in the `SELECT` statement")
+            .add_note("Select statements requires at least selecting one value")
+            .with_location(get_safe_location(tokens, *position - 1))
+            .as_boxed());
     }
 
     // If it `select *` make all table fields selectable
@@ -392,7 +455,7 @@ fn parse_select_statement(
         );
     }
 
-    // Type check all selected fields has type regsited in type table
+    // Type check all selected fields has type registered in type table
     type_check_selected_fields(env, table_name, &fields_names, tokens, *position)?;
 
     Ok(Box::new(SelectStatement {
@@ -406,16 +469,17 @@ fn parse_select_statement(
 
 fn parse_where_statement(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Statement>, GQLError> {
+) -> Result<Box<dyn Statement>, Box<Diagnostic>> {
     *position += 1;
     if *position >= tokens.len() {
-        return Err(GQLError {
-            message: "Expect expression after `WHERE` keyword".to_owned(),
-            location: get_safe_location(tokens, *position - 1),
-        });
+        return Err(Diagnostic::error("Expect expression after `WHERE` keyword")
+            .add_help("Try to add boolean expression after `WHERE` keyword")
+            .add_note("`WHERE` statement expects expression as condition")
+            .with_location(get_safe_location(tokens, *position - 1))
+            .as_boxed());
     }
 
     let aggregations_count_before = context.aggregations.len();
@@ -425,22 +489,25 @@ fn parse_where_statement(
     let condition = parse_expression(context, env, tokens, position)?;
     let condition_type = condition.expr_type(env);
     if condition_type != DataType::Boolean {
-        return Err(GQLError {
-            message: format!(
-                "Expect `WHERE` condition bo be type {} but got {}",
-                DataType::Boolean.literal(),
-                condition_type.literal()
-            ),
-            location: condition_location,
-        });
+        return Err(Diagnostic::error(&format!(
+            "Expect `WHERE` condition to be type {} but got {}",
+            DataType::Boolean,
+            condition_type
+        ))
+        .add_note("`WHERE` statement condition must be Boolean")
+        .with_location(condition_location)
+        .as_boxed());
     }
 
     let aggregations_count_after = context.aggregations.len();
     if aggregations_count_before != aggregations_count_after {
-        return Err(GQLError {
-            message: String::from("Can't use Aggregation functions in `WHERE` statement"),
-            location: condition_location,
-        });
+        return Err(
+            Diagnostic::error("Can't use Aggregation functions in `WHERE` statement")
+                .add_note("Aggregation functions must be used after `GROUP BY` statement")
+                .add_note("Aggregation functions evaluated after later after `GROUP BY` statement")
+                .with_location(condition_location)
+                .as_boxed(),
+        );
     }
 
     Ok(Box::new(WhereStatement { condition }))
@@ -448,33 +515,36 @@ fn parse_where_statement(
 
 fn parse_group_by_statement(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Statement>, GQLError> {
+) -> Result<Box<dyn Statement>, Box<Diagnostic>> {
     *position += 1;
     if *position >= tokens.len() || tokens[*position].kind != TokenKind::By {
-        return Err(GQLError {
-            message: "Expect keyword `by` after keyword `group`".to_owned(),
-            location: get_safe_location(tokens, *position - 1),
-        });
+        return Err(
+            Diagnostic::error("Expect keyword `by` after keyword `group`")
+                .add_help("Try to use `BY` keyword after `GROUP")
+                .with_location(get_safe_location(tokens, *position - 1))
+                .as_boxed(),
+        );
     }
     *position += 1;
     if *position >= tokens.len() || tokens[*position].kind != TokenKind::Symbol {
-        return Err(GQLError {
-            message: "Expect field name after `group by`".to_owned(),
-            location: get_safe_location(tokens, *position - 1),
-        });
+        return Err(Diagnostic::error("Expect field name after `group by`")
+            .with_location(get_safe_location(tokens, *position - 1))
+            .as_boxed());
     }
 
     let field_name = tokens[*position].literal.to_string();
     *position += 1;
 
     if !env.contains(&field_name) {
-        return Err(GQLError {
-            message: "Current table not contains field with this name".to_owned(),
-            location: get_safe_location(tokens, *position - 1),
-        });
+        return Err(
+            Diagnostic::error("Current table not contains field with this name")
+                .add_help("Check the documentations to see available fields for each tables")
+                .with_location(get_safe_location(tokens, *position - 1))
+                .as_boxed(),
+        );
     }
 
     context.has_group_by_statement = true;
@@ -483,16 +553,19 @@ fn parse_group_by_statement(
 
 fn parse_having_statement(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Statement>, GQLError> {
+) -> Result<Box<dyn Statement>, Box<Diagnostic>> {
     *position += 1;
     if *position >= tokens.len() {
-        return Err(GQLError {
-            message: "Expect expression after `where` keyword".to_owned(),
-            location: get_safe_location(tokens, *position - 1),
-        });
+        return Err(
+            Diagnostic::error("Expect expression after `HAVING` keyword")
+                .add_help("Try to add boolean expression after `HAVING` keyword")
+                .add_note("`HAVING` statement expects expression as condition")
+                .with_location(get_safe_location(tokens, *position - 1))
+                .as_boxed(),
+        );
     }
 
     // Make sure HAVING condition expression has boolean type
@@ -500,14 +573,14 @@ fn parse_having_statement(
     let condition = parse_expression(context, env, tokens, position)?;
     let condition_type = condition.expr_type(env);
     if condition_type != DataType::Boolean {
-        return Err(GQLError {
-            message: format!(
-                "Expect `HAVING` condition bo be type {} but got {}",
-                DataType::Boolean.literal(),
-                condition_type.literal()
-            ),
-            location: condition_location,
-        });
+        return Err(Diagnostic::error(&format!(
+            "Expect `HAVING` condition to be type {} but got {}",
+            DataType::Boolean,
+            condition_type
+        ))
+        .add_note("`HAVING` statement condition must be Boolean")
+        .with_location(condition_location)
+        .as_boxed());
     }
 
     Ok(Box::new(HavingStatement { condition }))
@@ -516,53 +589,102 @@ fn parse_having_statement(
 fn parse_limit_statement(
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Statement>, GQLError> {
+) -> Result<Box<dyn Statement>, Box<Diagnostic>> {
     *position += 1;
     if *position >= tokens.len() || tokens[*position].kind != TokenKind::Integer {
-        return Err(GQLError {
-            message: "Expect number after `LIMIT` keyword".to_owned(),
-            location: get_safe_location(tokens, *position - 1),
-        });
+        return Err(Diagnostic::error("Expect number after `LIMIT` keyword")
+            .with_location(get_safe_location(tokens, *position - 1))
+            .as_boxed());
     }
 
-    let count_str = tokens[*position].literal.to_string();
-    let count: usize = count_str.parse().unwrap();
+    let count_result: Result<usize, ParseIntError> = tokens[*position].literal.parse();
+
+    // Report clear error for Integer parsing
+    if let Err(error) = &count_result {
+        if error.kind().eq(&IntErrorKind::PosOverflow) {
+            return Err(Diagnostic::error("`LIMIT` integer value is too large")
+                .add_help("Try to use smaller value")
+                .add_note(&format!(
+                    "`LIMIT` value must be between 0 and {}",
+                    usize::MAX
+                ))
+                .with_location(get_safe_location(tokens, *position))
+                .as_boxed());
+        }
+
+        return Err(Diagnostic::error("`LIMIT` integer value is invalid")
+            .add_help(&format!(
+                "`LIMIT` value must be between 0 and {}",
+                usize::MAX
+            ))
+            .with_location(get_safe_location(tokens, *position))
+            .as_boxed());
+    }
+
+    // Consume Integer value
     *position += 1;
+
+    let count = count_result.unwrap();
     Ok(Box::new(LimitStatement { count }))
 }
 
 fn parse_offset_statement(
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Statement>, GQLError> {
+) -> Result<Box<dyn Statement>, Box<Diagnostic>> {
     *position += 1;
     if *position >= tokens.len() || tokens[*position].kind != TokenKind::Integer {
-        return Err(GQLError {
-            message: "Expect number after `OFFSET` keyword".to_owned(),
-            location: get_safe_location(tokens, *position - 1),
-        });
+        return Err(Diagnostic::error("Expect number after `OFFSET` keyword")
+            .with_location(get_safe_location(tokens, *position - 1))
+            .as_boxed());
     }
 
-    let count_str = tokens[*position].literal.to_string();
-    let count: usize = count_str.parse().unwrap();
+    let count_result: Result<usize, ParseIntError> = tokens[*position].literal.parse();
+
+    // Report clear error for Integer parsing
+    if let Err(error) = &count_result {
+        if error.kind().eq(&IntErrorKind::PosOverflow) {
+            return Err(Diagnostic::error("`OFFSET` integer value is too large")
+                .add_help("Try to use smaller value")
+                .add_note(&format!(
+                    "`OFFSET` value must be between 0 and {}",
+                    usize::MAX
+                ))
+                .with_location(get_safe_location(tokens, *position))
+                .as_boxed());
+        }
+
+        return Err(Diagnostic::error("`OFFSET` integer value is invalid")
+            .add_help(&format!(
+                "`OFFSET` value must be between 0 and {}",
+                usize::MAX
+            ))
+            .with_location(get_safe_location(tokens, *position))
+            .as_boxed());
+    }
+
     *position += 1;
+
+    let count = count_result.unwrap();
     Ok(Box::new(OffsetStatement { count }))
 }
 
 fn parse_order_by_statement(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Statement>, GQLError> {
+) -> Result<Box<dyn Statement>, Box<Diagnostic>> {
     // Consume `ORDER` keyword
     *position += 1;
 
     if *position >= tokens.len() || tokens[*position].kind != TokenKind::By {
-        return Err(GQLError {
-            message: "Expect keyword `BY` after keyword `ORDER`".to_owned(),
-            location: get_safe_location(tokens, *position - 1),
-        });
+        return Err(
+            Diagnostic::error("Expect keyword `BY` after keyword `ORDER")
+                .add_help("Try to use `BY` keyword after `ORDER")
+                .with_location(get_safe_location(tokens, *position - 1))
+                .as_boxed(),
+        );
     }
 
     // Consume `BY` keyword
@@ -602,19 +724,76 @@ fn parse_order_by_statement(
 
 fn parse_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
-    parse_is_null_expression(context, env, tokens, position)
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
+    let aggregations_count_before = context.aggregations.len();
+    let expression = parse_assignment_expression(context, env, tokens, position)?;
+    let has_aggregations = context.aggregations.len() != aggregations_count_before;
+
+    if has_aggregations {
+        let column_name = context.generate_column_name();
+        env.define(column_name.to_string(), expression.expr_type(env));
+
+        // Register the new aggregation generated field if the this expression is after group by
+        if context.has_group_by_statement && !context.hidden_selections.contains(&column_name) {
+            context.hidden_selections.push(column_name.to_string());
+        }
+
+        context
+            .aggregations
+            .insert(column_name.clone(), AggregateValue::Expression(expression));
+
+        return Ok(Box::new(SymbolExpression { value: column_name }));
+    }
+
+    Ok(expression)
+}
+
+fn parse_assignment_expression(
+    context: &mut ParserContext,
+    env: &mut Environment,
+    tokens: &Vec<Token>,
+    position: &mut usize,
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
+    let expression = parse_is_null_expression(context, env, tokens, position)?;
+    if *position < tokens.len() && tokens[*position].kind == TokenKind::ColonEqual {
+        if expression.kind() != ExpressionKind::GlobalVariable {
+            return Err(Diagnostic::error(
+                "Assignment expressions expect global variable name before `:=`",
+            )
+            .with_location(tokens[*position].location)
+            .as_boxed());
+        }
+
+        let expr = expression
+            .as_any()
+            .downcast_ref::<GlobalVariableExpression>()
+            .unwrap();
+
+        let variable_name = expr.name.to_string();
+
+        // Consume `:=` operator
+        *position += 1;
+
+        let value = parse_is_null_expression(context, env, tokens, position)?;
+        env.define_global(variable_name.clone(), value.expr_type(env));
+
+        return Ok(Box::new(AssignmentExpression {
+            symbol: variable_name.clone(),
+            value,
+        }));
+    }
+    Ok(expression)
 }
 
 fn parse_is_null_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_in_expression(context, env, tokens, position)?;
     if *position < tokens.len() && tokens[*position].kind == TokenKind::Is {
         let is_location = tokens[*position].location;
@@ -634,28 +813,38 @@ fn parse_is_null_expression(
         if *position < tokens.len() && tokens[*position].kind == TokenKind::Null {
             // Consume `Null` keyword
             *position += 1;
-        } else {
-            return Err(GQLError {
-                message: "Expects `NULL` Keyword after `IS` or `IS NOT`".to_owned(),
-                location: is_location,
-            });
+
+            return Ok(Box::new(IsNullExpression {
+                argument: expression,
+                has_not: has_not_keyword,
+            }));
         }
 
-        return Ok(Box::new(IsNullExpression {
-            argument: expression,
-            has_not: has_not_keyword,
-        }));
+        return Err(
+            Diagnostic::error("Expects `NULL` Keyword after `IS` or `IS NOT`")
+                .with_location(is_location)
+                .as_boxed(),
+        );
     }
     Ok(expression)
 }
 
 fn parse_in_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_between_expression(context, env, tokens, position)?;
+
+    // Consume `NOT` keyword if IN Expression prefixed with `NOT` for example `expr NOT IN (...values)`
+    let has_not_keyword = if *position < tokens.len() && tokens[*position].kind == TokenKind::Not {
+        *position += 1;
+        true
+    } else {
+        false
+    };
+
     if *position < tokens.len() && tokens[*position].kind == TokenKind::In {
         let in_location = tokens[*position].location;
 
@@ -663,45 +852,70 @@ fn parse_in_expression(
         *position += 1;
 
         if consume_kind(tokens, *position, TokenKind::LeftParen).is_err() {
-            return Err(GQLError {
-                message: "Expects values between `(` and `)` after `IN` keyword".to_owned(),
-                location: in_location,
-            });
+            return Err(
+                Diagnostic::error("Expects values between `(` and `)` after `IN` keyword")
+                    .with_location(in_location)
+                    .as_boxed(),
+            );
         }
 
         let values = parse_arguments_expressions(context, env, tokens, position)?;
+
+        // Optimize the Expression if the number of values in the list is 0
+        if values.is_empty() {
+            return Ok(Box::new(BooleanExpression {
+                is_true: has_not_keyword,
+            }));
+        }
+
         let values_type_result = check_all_values_are_same_type(env, &values);
-        if values_type_result.is_err() {
-            return Err(GQLError {
-                message: "Expects values between `(` and `)` to have the same type".to_owned(),
-                location: in_location,
-            });
+        if values_type_result.is_none() {
+            return Err(Diagnostic::error(
+                "Expects values between `(` and `)` to have the same type",
+            )
+            .with_location(in_location)
+            .as_boxed());
         }
 
         // Check that argument and values has the same type
-        let values_type = values_type_result.ok().unwrap();
+        let values_type = values_type_result.unwrap();
         if values_type != DataType::Any && expression.expr_type(env) != values_type {
-            return Err(GQLError {
-                message: "Argument and Values of In Expression must have the same type".to_owned(),
-                location: in_location,
-            });
+            return Err(Diagnostic::error(
+                "Argument and Values of In Expression must have the same type",
+            )
+            .with_location(in_location)
+            .as_boxed());
         }
 
         return Ok(Box::new(InExpression {
             argument: expression,
             values,
             values_type,
+            has_not_keyword,
         }));
     }
+
+    // Report error if user write `NOT` with no `IN` keyword after it
+    if has_not_keyword {
+        return Err(
+            Diagnostic::error("Expects `IN` expression after this `NOT` keyword")
+                .add_help("Try to use `IN` expression after NOT keyword")
+                .add_help("Try to remove `NOT` keyword")
+                .add_note("Expect to see `NOT` then `IN` keyword with a list of values")
+                .with_location(get_safe_location(tokens, *position - 1))
+                .as_boxed(),
+        );
+    }
+
     Ok(expression)
 }
 
 fn parse_between_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_logical_or_expression(context, env, tokens, position)?;
 
     if *position < tokens.len() && tokens[*position].kind == TokenKind::Between {
@@ -710,53 +924,39 @@ fn parse_between_expression(
         // Consume `BETWEEN` keyword
         *position += 1;
 
-        if expression.expr_type(env) != DataType::Integer {
-            return Err(GQLError {
-                message: format!(
-                    "BETWEEN value must to be Number type but got {}",
-                    expression.expr_type(env).literal()
-                ),
-                location: between_location,
-            });
-        }
-
         if *position >= tokens.len() {
-            return Err(GQLError {
-                message: "Between keyword expects two range after it".to_owned(),
-                location: between_location,
-            });
+            return Err(
+                Diagnostic::error("`BETWEEN` keyword expects two range after it")
+                    .with_location(between_location)
+                    .as_boxed(),
+            );
         }
 
+        let argument_type = expression.expr_type(env);
         let range_start = parse_logical_or_expression(context, env, tokens, position)?;
-        if range_start.expr_type(env) != DataType::Integer {
-            return Err(GQLError {
-                message: format!(
-                    "Expect range start to be Number type but got {}",
-                    range_start.expr_type(env).literal()
-                ),
-                location: between_location,
-            });
-        }
 
         if *position >= tokens.len() || tokens[*position].kind != TokenKind::DotDot {
-            return Err(GQLError {
-                message: "Expect `..` after BETWEEN range start".to_owned(),
-                location: between_location,
-            });
+            return Err(Diagnostic::error("Expect `..` after `BETWEEN` range start")
+                .with_location(between_location)
+                .as_boxed());
         }
 
-        // Consume `..` keyword
+        // Consume `..` token
         *position += 1;
 
         let range_end = parse_logical_or_expression(context, env, tokens, position)?;
-        if range_end.expr_type(env) != DataType::Integer {
-            return Err(GQLError {
-                message: format!(
-                    "Expect range end to be Number type but got {}",
-                    range_end.expr_type(env).literal()
-                ),
-                location: between_location,
-            });
+
+        if argument_type != range_start.expr_type(env) || argument_type != range_end.expr_type(env)
+        {
+            return Err(Diagnostic::error(&format!(
+                "Expect `BETWEEN` argument, range start and end to has same type but got {}, {} and {}",
+                argument_type,
+                range_start.expr_type(env),
+                range_end.expr_type(env)
+            ))
+            .add_help("Try to make sure all of them has same type")
+            .with_location(between_location)
+            .as_boxed());
         }
 
         return Ok(Box::new(BetweenExpression {
@@ -771,37 +971,36 @@ fn parse_between_expression(
 
 fn parse_logical_or_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_logical_and_expression(context, env, tokens, position);
     if expression.is_err() || *position >= tokens.len() {
         return expression;
     }
 
     let lhs = expression.ok().unwrap();
-
-    let operator = &tokens[*position];
-
-    if operator.kind == TokenKind::LogicalOr {
+    if tokens[*position].kind == TokenKind::LogicalOr {
         *position += 1;
 
         if lhs.expr_type(env) != DataType::Boolean {
-            return Err(type_missmatch_error(
+            return Err(type_mismatch_error(
                 tokens[*position - 2].location,
                 DataType::Boolean,
                 lhs.expr_type(env),
-            ));
+            )
+            .as_boxed());
         }
 
         let rhs = parse_logical_and_expression(context, env, tokens, position)?;
         if rhs.expr_type(env) != DataType::Boolean {
-            return Err(type_missmatch_error(
+            return Err(type_mismatch_error(
                 tokens[*position].location,
                 DataType::Boolean,
                 lhs.expr_type(env),
-            ));
+            )
+            .as_boxed());
         }
 
         return Ok(Box::new(LogicalExpression {
@@ -816,37 +1015,36 @@ fn parse_logical_or_expression(
 
 fn parse_logical_and_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_bitwise_or_expression(context, env, tokens, position);
     if expression.is_err() || *position >= tokens.len() {
         return expression;
     }
 
     let lhs = expression.ok().unwrap();
-
-    let operator = &tokens[*position];
-
-    if operator.kind == TokenKind::LogicalAnd {
+    if tokens[*position].kind == TokenKind::LogicalAnd {
         *position += 1;
 
         if lhs.expr_type(env) != DataType::Boolean {
-            return Err(type_missmatch_error(
+            return Err(type_mismatch_error(
                 tokens[*position - 2].location,
                 DataType::Boolean,
                 lhs.expr_type(env),
-            ));
+            )
+            .as_boxed());
         }
 
         let rhs = parse_bitwise_or_expression(context, env, tokens, position)?;
         if rhs.expr_type(env) != DataType::Boolean {
-            return Err(type_missmatch_error(
+            return Err(type_mismatch_error(
                 tokens[*position].location,
                 DataType::Boolean,
                 lhs.expr_type(env),
-            ));
+            )
+            .as_boxed());
         }
 
         return Ok(Box::new(LogicalExpression {
@@ -861,37 +1059,36 @@ fn parse_logical_and_expression(
 
 fn parse_bitwise_or_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_logical_xor_expression(context, env, tokens, position);
     if expression.is_err() || *position >= tokens.len() {
         return expression;
     }
 
     let lhs = expression.ok().unwrap();
-
-    let operator = &tokens[*position];
-
-    if operator.kind == TokenKind::BitwiseOr {
+    if tokens[*position].kind == TokenKind::BitwiseOr {
         *position += 1;
 
         if lhs.expr_type(env) != DataType::Boolean {
-            return Err(type_missmatch_error(
+            return Err(type_mismatch_error(
                 tokens[*position - 2].location,
                 DataType::Boolean,
                 lhs.expr_type(env),
-            ));
+            )
+            .as_boxed());
         }
 
         let rhs = parse_logical_xor_expression(context, env, tokens, position)?;
         if rhs.expr_type(env) != DataType::Boolean {
-            return Err(type_missmatch_error(
+            return Err(type_mismatch_error(
                 tokens[*position].location,
                 DataType::Boolean,
                 lhs.expr_type(env),
-            ));
+            )
+            .as_boxed());
         }
 
         return Ok(Box::new(BitwiseExpression {
@@ -906,24 +1103,21 @@ fn parse_bitwise_or_expression(
 
 fn parse_logical_xor_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_bitwise_and_expression(context, env, tokens, position);
     if expression.is_err() || *position >= tokens.len() {
         return expression;
     }
 
     let lhs = expression.ok().unwrap();
-
-    let operator = &tokens[*position];
-
-    if operator.kind == TokenKind::LogicalXor {
+    if tokens[*position].kind == TokenKind::LogicalXor {
         *position += 1;
 
         if lhs.expr_type(env) != DataType::Boolean {
-            return Err(type_missmatch_error(
+            return Err(type_mismatch_error(
                 tokens[*position - 2].location,
                 DataType::Boolean,
                 lhs.expr_type(env),
@@ -932,7 +1126,7 @@ fn parse_logical_xor_expression(
 
         let rhs = parse_bitwise_and_expression(context, env, tokens, position)?;
         if rhs.expr_type(env) != DataType::Boolean {
-            return Err(type_missmatch_error(
+            return Err(type_mismatch_error(
                 tokens[*position].location,
                 DataType::Boolean,
                 lhs.expr_type(env),
@@ -951,41 +1145,30 @@ fn parse_logical_xor_expression(
 
 fn parse_bitwise_and_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_equality_expression(context, env, tokens, position);
     if expression.is_err() || *position >= tokens.len() {
         return expression;
     }
 
     let lhs = expression.ok().unwrap();
-
-    let operator = &tokens[*position];
-
-    if operator.kind == TokenKind::BitwiseAnd {
+    if tokens[*position].kind == TokenKind::BitwiseAnd {
         *position += 1;
 
         if lhs.expr_type(env) != DataType::Boolean {
-            return Err(type_missmatch_error(
+            return Err(type_mismatch_error(
                 tokens[*position - 2].location,
                 DataType::Boolean,
                 lhs.expr_type(env),
             ));
         }
 
-        let right_expr = parse_equality_expression(context, env, tokens, position);
-        if right_expr.is_err() {
-            return Err(GQLError {
-                message: "Can't parser right side of bitwise and expression".to_owned(),
-                location: get_safe_location(tokens, *position),
-            });
-        }
-
-        let rhs = right_expr.ok().unwrap();
+        let rhs = parse_equality_expression(context, env, tokens, position)?;
         if rhs.expr_type(env) != DataType::Boolean {
-            return Err(type_missmatch_error(
+            return Err(type_mismatch_error(
                 tokens[*position].location,
                 DataType::Boolean,
                 lhs.expr_type(env),
@@ -1004,10 +1187,10 @@ fn parse_bitwise_and_expression(
 
 fn parse_equality_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_comparison_expression(context, env, tokens, position);
     if expression.is_err() || *position >= tokens.len() {
         return expression;
@@ -1031,15 +1214,28 @@ fn parse_equality_expression(
             TypeCheckResult::RightSideCasted(expr) => rhs = expr,
             TypeCheckResult::LeftSideCasted(expr) => lhs = expr,
             TypeCheckResult::NotEqualAndCantImplicitCast => {
-                let message = format!(
+                let lhs_type = lhs.expr_type(env);
+                let rhs_type = rhs.expr_type(env);
+                let diagnostic = Diagnostic::error(&format!(
                     "Can't compare values of different types `{}` and `{}`",
-                    lhs.expr_type(env).literal(),
-                    rhs.expr_type(env).literal()
-                );
-                return Err(GQLError {
-                    message,
-                    location: get_safe_location(tokens, *position - 2),
-                });
+                    lhs_type, rhs_type
+                ))
+                .with_location(get_safe_location(tokens, *position - 2));
+
+                // Provides help messages if use compare null to non null value
+                if lhs_type.is_null() || rhs_type.is_null() {
+                    return Err(diagnostic
+                        .add_help("Try to use `IS NULL expr` expression")
+                        .add_help("Try to use `ISNULL(expr)` function")
+                        .as_boxed());
+                }
+
+                return Err(diagnostic.as_boxed());
+            }
+            TypeCheckResult::Error(diagnostic) => {
+                return Err(diagnostic
+                    .with_location(get_safe_location(tokens, *position - 2))
+                    .as_boxed());
             }
         };
 
@@ -1055,10 +1251,10 @@ fn parse_equality_expression(
 
 fn parse_comparison_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_bitwise_shift_expression(context, env, tokens, position);
     if expression.is_err() || *position >= tokens.len() {
         return expression;
@@ -1083,15 +1279,28 @@ fn parse_comparison_expression(
             TypeCheckResult::RightSideCasted(expr) => rhs = expr,
             TypeCheckResult::LeftSideCasted(expr) => lhs = expr,
             TypeCheckResult::NotEqualAndCantImplicitCast => {
-                let message = format!(
+                let lhs_type = lhs.expr_type(env);
+                let rhs_type = rhs.expr_type(env);
+                let diagnostic = Diagnostic::error(&format!(
                     "Can't compare values of different types `{}` and `{}`",
-                    lhs.expr_type(env).literal(),
-                    rhs.expr_type(env).literal()
-                );
-                return Err(GQLError {
-                    message,
-                    location: get_safe_location(tokens, *position - 2),
-                });
+                    lhs_type, rhs_type
+                ))
+                .with_location(get_safe_location(tokens, *position - 2));
+
+                // Provides help messages if use compare null to non null value
+                if lhs_type.is_null() || rhs_type.is_null() {
+                    return Err(diagnostic
+                        .add_help("Try to use `IS NULL expr` expression")
+                        .add_help("Try to use `ISNULL(expr)` function")
+                        .as_boxed());
+                }
+
+                return Err(diagnostic.as_boxed());
+            }
+            TypeCheckResult::Error(diagnostic) => {
+                return Err(diagnostic
+                    .with_location(get_safe_location(tokens, *position - 2))
+                    .as_boxed());
             }
         };
 
@@ -1107,10 +1316,10 @@ fn parse_comparison_expression(
 
 fn parse_bitwise_shift_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let mut lhs = parse_term_expression(context, env, tokens, position)?;
 
     while *position < tokens.len() && is_bitwise_shift_operator(&tokens[*position]) {
@@ -1125,16 +1334,14 @@ fn parse_bitwise_shift_expression(
         let rhs = parse_term_expression(context, env, tokens, position)?;
 
         // Make sure right and left hand side types are numbers
-        if rhs.expr_type(env) == DataType::Integer && rhs.expr_type(env) != lhs.expr_type(env) {
-            let message = format!(
+        if rhs.expr_type(env).is_int() && rhs.expr_type(env) != lhs.expr_type(env) {
+            return Err(Diagnostic::error(&format!(
                 "Bitwise operators require number types but got `{}` and `{}`",
-                lhs.expr_type(env).literal(),
-                rhs.expr_type(env).literal()
-            );
-            return Err(GQLError {
-                message,
-                location: get_safe_location(tokens, *position - 2),
-            });
+                lhs.expr_type(env),
+                rhs.expr_type(env)
+            ))
+            .with_location(get_safe_location(tokens, *position - 2))
+            .as_boxed());
         }
 
         lhs = Box::new(BitwiseExpression {
@@ -1149,10 +1356,10 @@ fn parse_bitwise_shift_expression(
 
 fn parse_term_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let mut lhs = parse_factor_expression(context, env, tokens, position)?;
 
     while *position < tokens.len() && is_term_operator(&tokens[*position]) {
@@ -1180,16 +1387,25 @@ fn parse_term_expression(
             continue;
         }
 
-        let message = format!(
-            "Math operators require number types but got `{}` and `{}`",
-            lhs_type.literal(),
-            rhs_type.literal()
-        );
+        // Report Error message that suggest to replace `+` operator by `CONCAT` function
+        if math_operator == ArithmeticOperator::Plus {
+            return Err(Diagnostic::error(&format!(
+                "Math operators `+` both sides to be number types but got `{}` and `{}`",
+                lhs_type, rhs_type
+            ))
+            .add_help(
+                "You can use `CONCAT(Any, Any, ...Any)` function to concatenate values with different types",
+            )
+            .with_location(operator.location)
+            .as_boxed());
+        }
 
-        return Err(GQLError {
-            message,
-            location: get_safe_location(tokens, *position - 2),
-        });
+        return Err(Diagnostic::error(&format!(
+            "Math operators require number types but got `{}` and `{}`",
+            lhs_type, rhs_type
+        ))
+        .with_location(operator.location)
+        .as_boxed());
     }
 
     Ok(lhs)
@@ -1197,10 +1413,10 @@ fn parse_term_expression(
 
 fn parse_factor_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_like_expression(context, env, tokens, position);
     if expression.is_err() || *position >= tokens.len() {
         return expression;
@@ -1232,16 +1448,12 @@ fn parse_factor_expression(
             continue;
         }
 
-        let message = format!(
+        return Err(Diagnostic::error(&format!(
             "Math operators require number types but got `{}` and `{}`",
-            lhs_type.literal(),
-            rhs_type.literal()
-        );
-
-        return Err(GQLError {
-            message,
-            location: get_safe_location(tokens, *position - 2),
-        });
+            lhs_type, rhs_type
+        ))
+        .with_location(get_safe_location(tokens, *position - 2))
+        .as_boxed());
     }
 
     Ok(lhs)
@@ -1249,10 +1461,10 @@ fn parse_factor_expression(
 
 fn parse_like_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_glob_expression(context, env, tokens, position);
     if expression.is_err() || *position >= tokens.len() {
         return expression;
@@ -1264,20 +1476,22 @@ fn parse_like_expression(
         *position += 1;
 
         if !lhs.expr_type(env).is_text() {
-            let message = format!(
+            return Err(Diagnostic::error(&format!(
                 "Expect `LIKE` left hand side to be `TEXT` but got {}",
-                lhs.expr_type(env).literal()
-            );
-            return Err(GQLError { message, location });
+                lhs.expr_type(env)
+            ))
+            .with_location(location)
+            .as_boxed());
         }
 
         let pattern = parse_glob_expression(context, env, tokens, position)?;
         if !pattern.expr_type(env).is_text() {
-            let message = format!(
+            return Err(Diagnostic::error(&format!(
                 "Expect `LIKE` right hand side to be `TEXT` but got {}",
-                pattern.expr_type(env).literal()
-            );
-            return Err(GQLError { message, location });
+                pattern.expr_type(env)
+            ))
+            .with_location(location)
+            .as_boxed());
         }
 
         return Ok(Box::new(LikeExpression {
@@ -1291,10 +1505,10 @@ fn parse_like_expression(
 
 fn parse_glob_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_unary_expression(context, env, tokens, position);
     if expression.is_err() || *position >= tokens.len() {
         return expression;
@@ -1306,20 +1520,22 @@ fn parse_glob_expression(
         *position += 1;
 
         if !lhs.expr_type(env).is_text() {
-            let message = format!(
+            return Err(Diagnostic::error(&format!(
                 "Expect `GLOB` left hand side to be `TEXT` but got {}",
-                lhs.expr_type(env).literal()
-            );
-            return Err(GQLError { message, location });
+                lhs.expr_type(env)
+            ))
+            .with_location(location)
+            .as_boxed());
         }
 
         let pattern = parse_unary_expression(context, env, tokens, position)?;
         if !pattern.expr_type(env).is_text() {
-            let message = format!(
+            return Err(Diagnostic::error(&format!(
                 "Expect `GLOB` right hand side to be `TEXT` but got {}",
-                pattern.expr_type(env).literal()
-            );
-            return Err(GQLError { message, location });
+                pattern.expr_type(env)
+            ))
+            .with_location(location)
+            .as_boxed());
         }
 
         return Ok(Box::new(GlobExpression {
@@ -1333,10 +1549,10 @@ fn parse_glob_expression(
 
 fn parse_unary_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     if *position < tokens.len() && is_prefix_unary_operator(&tokens[*position]) {
         let op = if tokens[*position].kind == TokenKind::Bang {
             PrefixUnaryOperator::Bang
@@ -1349,13 +1565,15 @@ fn parse_unary_expression(
         let rhs = parse_expression(context, env, tokens, position)?;
         let rhs_type = rhs.expr_type(env);
         if op == PrefixUnaryOperator::Bang && rhs_type != DataType::Boolean {
-            return Err(type_missmatch_error(
+            return Err(type_mismatch_error(
                 get_safe_location(tokens, *position - 1),
                 DataType::Boolean,
                 rhs_type,
             ));
-        } else if op == PrefixUnaryOperator::Minus && rhs_type != DataType::Integer {
-            return Err(type_missmatch_error(
+        }
+
+        if op == PrefixUnaryOperator::Minus && rhs_type != DataType::Integer {
+            return Err(type_mismatch_error(
                 get_safe_location(tokens, *position - 1),
                 DataType::Integer,
                 rhs_type,
@@ -1370,10 +1588,10 @@ fn parse_unary_expression(
 
 fn parse_function_call_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let expression = parse_primary_expression(context, env, tokens, position)?;
     if *position < tokens.len() && tokens[*position].kind == TokenKind::LeftParen {
         let symbol_expression = expression.as_any().downcast_ref::<SymbolExpression>();
@@ -1381,23 +1599,23 @@ fn parse_function_call_expression(
 
         // Make sure function name is SymbolExpression
         if symbol_expression.is_none() {
-            return Err(GQLError {
-                message: "Function name must be identifier".to_owned(),
-                location: function_name_location,
-            });
+            return Err(Diagnostic::error("Function name must be an identifier")
+                .with_location(function_name_location)
+                .as_boxed());
         }
 
-        // Make sure it's valid function name
         let function_name = &symbol_expression.unwrap().value;
+
+        // Check if this function is a Standard library functions
         if FUNCTIONS.contains_key(function_name.as_str()) {
-            let arguments = parse_arguments_expressions(context, env, tokens, position)?;
+            let mut arguments = parse_arguments_expressions(context, env, tokens, position)?;
             let prototype = PROTOTYPES.get(function_name.as_str()).unwrap();
             let parameters = &prototype.parameters;
             let return_type = prototype.result.clone();
 
             check_function_call_arguments(
                 env,
-                &arguments,
+                &mut arguments,
                 parameters,
                 function_name.to_string(),
                 function_name_location,
@@ -1411,22 +1629,33 @@ fn parse_function_call_expression(
                 arguments,
                 is_aggregation: false,
             }));
-        } else if AGGREGATIONS.contains_key(function_name.as_str()) {
-            let arguments = parse_arguments_expressions(context, env, tokens, position)?;
+        }
+
+        // Check if this function is an Aggregation functions
+        if AGGREGATIONS.contains_key(function_name.as_str()) {
+            let mut arguments = parse_arguments_expressions(context, env, tokens, position)?;
             let prototype = AGGREGATIONS_PROTOS.get(function_name.as_str()).unwrap();
             let parameters = &vec![prototype.parameter.clone()];
             let return_type = prototype.result.clone();
 
             check_function_call_arguments(
                 env,
-                &arguments,
+                &mut arguments,
                 parameters,
                 function_name.to_string(),
                 function_name_location,
             )?;
 
-            let argument_str = get_expression_name(&arguments[0]);
-            let argument = argument_str.ok().unwrap();
+            let argument_result = get_expression_name(&arguments[0]);
+            if argument_result.is_err() {
+                return Err(Diagnostic::error("Invalid Aggregation function argument")
+                    .add_help("Try to use field name as Aggregation function argument")
+                    .add_note("Aggregation function accept field name as argument")
+                    .with_location(function_name_location)
+                    .as_boxed());
+            }
+
+            let argument = argument_result.ok().unwrap();
             let column_name = context.generate_column_name();
 
             context.hidden_selections.push(column_name.to_string());
@@ -1436,29 +1665,30 @@ fn parse_function_call_expression(
 
             context.aggregations.insert(
                 column_name.clone(),
-                AggregateFunction {
-                    function_name: function_name.to_string(),
-                    argument,
-                },
+                AggregateValue::Function(function_name.to_string(), argument),
             );
 
             return Ok(Box::new(SymbolExpression { value: column_name }));
-        } else {
-            return Err(GQLError {
-                message: "No such function name".to_owned(),
-                location: function_name_location,
-            });
         }
+
+        // Report that this function name is not standard or aggregation
+        return Err(Diagnostic::error("No such function name")
+            .add_help(&format!(
+                "Function `{}` is not an Aggregation or Standard library function name",
+                function_name,
+            ))
+            .with_location(function_name_location)
+            .as_boxed());
     }
     Ok(expression)
 }
 
 fn parse_arguments_expressions(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Vec<Box<dyn Expression>>, GQLError> {
+) -> Result<Vec<Box<dyn Expression>>, Box<Diagnostic>> {
     let mut arguments: Vec<Box<dyn Expression>> = vec![];
     if consume_kind(tokens, *position, TokenKind::LeftParen).is_ok() {
         *position += 1;
@@ -1480,24 +1710,26 @@ fn parse_arguments_expressions(
             }
         }
 
-        if consume_kind(tokens, *position, TokenKind::RightParen).is_ok() {
-            *position += 1;
-        } else {
-            return Err(GQLError {
-                message: "Expect `)` after function call arguments".to_owned(),
-                location: get_safe_location(tokens, *position),
-            });
+        if consume_kind(tokens, *position, TokenKind::RightParen).is_err() {
+            return Err(
+                Diagnostic::error("Expect `)` after function call arguments")
+                    .add_help("Try to add ')' at the end of function call, after arguments")
+                    .with_location(get_safe_location(tokens, *position))
+                    .as_boxed(),
+            );
         }
+
+        *position += 1;
     }
     Ok(arguments)
 }
 
 fn parse_primary_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     if *position >= tokens.len() {
         return Err(un_expected_expression_error(tokens, position));
     }
@@ -1555,17 +1787,17 @@ fn parse_primary_expression(
 
 fn parse_group_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     *position += 1;
     let expression = parse_expression(context, env, tokens, position)?;
     if tokens[*position].kind != TokenKind::RightParen {
-        return Err(GQLError {
-            message: "Expect `)` to end group expression".to_owned(),
-            location: get_safe_location(tokens, *position),
-        });
+        return Err(Diagnostic::error("Expect `)` to end group expression")
+            .with_location(get_safe_location(tokens, *position))
+            .add_help("Try to add ')' at the end of group expression")
+            .as_boxed());
     }
     *position += 1;
     Ok(expression)
@@ -1573,10 +1805,10 @@ fn parse_group_expression(
 
 fn parse_case_expression(
     context: &mut ParserContext,
-    env: &mut Enviroment,
+    env: &mut Environment,
     tokens: &Vec<Token>,
     position: &mut usize,
-) -> Result<Box<dyn Expression>, GQLError> {
+) -> Result<Box<dyn Expression>, Box<Diagnostic>> {
     let mut conditions: Vec<Box<dyn Expression>> = vec![];
     let mut values: Vec<Box<dyn Expression>> = vec![];
     let mut default_value: Option<Box<dyn Expression>> = None;
@@ -1591,13 +1823,15 @@ fn parse_case_expression(
         // Else branch
         if tokens[*position].kind == TokenKind::Else {
             if has_else_branch {
-                return Err(GQLError {
-                    message: "This case expression already has else branch".to_owned(),
-                    location: get_safe_location(tokens, *position),
-                });
+                return Err(
+                    Diagnostic::error("This case expression already has else branch")
+                        .add_note("`CASE` expression can has only one `ELSE` branch")
+                        .with_location(get_safe_location(tokens, *position))
+                        .as_boxed(),
+                );
             }
 
-            // consume else keyword
+            // Consume `ELSE` keyword
             *position += 1;
 
             let default_value_expr = parse_expression(context, env, tokens, position)?;
@@ -1606,34 +1840,32 @@ fn parse_case_expression(
             continue;
         }
 
-        // When
+        // Check if current token kind is `WHEN` keyword
         let when_result = consume_kind(tokens, *position, TokenKind::When);
         if when_result.is_err() {
-            return Err(GQLError {
-                message: "Expect `when` before case condition".to_owned(),
-                location: get_safe_location(tokens, *position),
-            });
+            return Err(Diagnostic::error("Expect `when` before case condition")
+                .add_help("Try to add `WHEN` keyword before any condition")
+                .with_location(get_safe_location(tokens, *position))
+                .as_boxed());
         }
 
-        // Consume when keyword
+        // Consume `WHEN` keyword
         *position += 1;
 
         let condition = parse_expression(context, env, tokens, position)?;
         if condition.expr_type(env) != DataType::Boolean {
-            return Err(GQLError {
-                message: "Case condition must be a boolean type".to_owned(),
-                location: get_safe_location(tokens, *position - 1),
-            });
+            return Err(Diagnostic::error("Case condition must be a boolean type")
+                .with_location(get_safe_location(tokens, *position))
+                .as_boxed());
         }
 
         conditions.push(condition);
 
         let then_result = consume_kind(tokens, *position, TokenKind::Then);
         if then_result.is_err() {
-            return Err(GQLError {
-                message: "Expect `then` after case condition".to_owned(),
-                location: get_safe_location(tokens, *position),
-            });
+            return Err(Diagnostic::error("Expect `THEN` after case condition")
+                .with_location(get_safe_location(tokens, *position))
+                .as_boxed());
         }
 
         // Consume then keyword
@@ -1645,18 +1877,18 @@ fn parse_case_expression(
 
     // Make sure case expression has at least else branch
     if conditions.is_empty() && !has_else_branch {
-        return Err(GQLError {
-            message: "Case expression must has at least else branch".to_owned(),
-            location: get_safe_location(tokens, *position),
-        });
+        return Err(
+            Diagnostic::error("Case expression must has at least else branch")
+                .with_location(get_safe_location(tokens, *position))
+                .as_boxed(),
+        );
     }
 
     // Make sure case expression end with END keyword
     if *position >= tokens.len() || tokens[*position].kind != TokenKind::End {
-        return Err(GQLError {
-            message: "Expect `end` after case branches".to_owned(),
-            location: get_safe_location(tokens, *position),
-        });
+        return Err(Diagnostic::error("Expect `END` after case branches")
+            .with_location(get_safe_location(tokens, *position))
+            .as_boxed());
     }
 
     // Consume end
@@ -1664,23 +1896,22 @@ fn parse_case_expression(
 
     // Make sure this case expression has else branch
     if !has_else_branch {
-        return Err(GQLError {
-            message: "Case expression must has else branch".to_owned(),
-            location: get_safe_location(tokens, *position),
-        });
+        return Err(Diagnostic::error("Case expression must has else branch")
+            .with_location(get_safe_location(tokens, *position))
+            .as_boxed());
     }
 
     // Assert that all values has the same type
     let values_type: DataType = values[0].expr_type(env);
     for (i, value) in values.iter().enumerate().skip(1) {
         if values_type != value.expr_type(env) {
-            return Err(GQLError {
-                message: format!(
-                    "Case value in branch {} has different type than the last branch",
-                    i + 1
-                ),
-                location: case_location,
-            });
+            return Err(Diagnostic::error(&format!(
+                "Case value in branch {} has different type than the last branch",
+                i + 1
+            ))
+            .add_note("All values in `CASE` expression must has the same Type")
+            .with_location(case_location)
+            .as_boxed());
         }
     }
 
@@ -1693,116 +1924,188 @@ fn parse_case_expression(
 }
 
 fn check_function_call_arguments(
-    env: &mut Enviroment,
-    arguments: &Vec<Box<dyn Expression>>,
+    env: &mut Environment,
+    arguments: &mut Vec<Box<dyn Expression>>,
     parameters: &Vec<DataType>,
     function_name: String,
     location: Location,
-) -> Result<(), GQLError> {
-    let arguments_len = arguments.len();
+) -> Result<(), Box<Diagnostic>> {
     let parameters_len = parameters.len();
+    let arguments_len = arguments.len();
 
-    // Make sure number of arguments and parameters are the same
-    if arguments_len != parameters_len {
-        let message = format!(
-            "Function `{}` expects `{}` arguments but got `{}`",
-            function_name, parameters_len, arguments_len
-        );
-        return Err(GQLError { message, location });
+    let mut has_optional_parameter = false;
+    let mut has_varargs_parameter = false;
+    if !parameters.is_empty() {
+        let last_parameter = parameters.last().unwrap();
+        has_optional_parameter = last_parameter.is_optional();
+        has_varargs_parameter = last_parameter.is_varargs();
+    }
+
+    // Has Optional parameter type at the end
+    if has_optional_parameter {
+        // If function last parameter is optional make sure it at least has
+        if arguments_len < parameters_len - 1 {
+            return Err(Box::new(
+                Diagnostic::error(&format!(
+                    "Function `{}` expects at least `{}` arguments but got `{}`",
+                    function_name,
+                    parameters_len - 1,
+                    arguments_len
+                ))
+                .with_location(location),
+            ));
+        }
+
+        // Make sure function with optional parameter not called with too much arguments
+        if arguments_len > parameters_len {
+            return Err(Box::new(
+                Diagnostic::error(&format!(
+                    "Function `{}` expects at most `{}` arguments but got `{}`",
+                    function_name, parameters_len, arguments_len
+                ))
+                .with_location(location),
+            ));
+        }
+    }
+    // Has Variable arguments parameter type at the end
+    else if has_varargs_parameter {
+        // If function last parameter is optional make sure it at least has
+        if arguments_len < parameters_len - 1 {
+            return Err(Box::new(
+                Diagnostic::error(&format!(
+                    "Function `{}` expects at least `{}` arguments but got `{}`",
+                    function_name,
+                    parameters_len - 1,
+                    arguments_len
+                ))
+                .with_location(location),
+            ));
+        }
+    }
+    // No Optional or Variable arguments but has invalid number of arguments passed
+    else if arguments_len != parameters_len {
+        return Err(Box::new(
+            Diagnostic::error(&format!(
+                "Function `{}` expects `{}` arguments but got `{}`",
+                function_name, parameters_len, arguments_len
+            ))
+            .with_location(location),
+        ));
+    }
+
+    let mut last_required_parameter_index = parameters_len;
+    if has_optional_parameter || has_varargs_parameter {
+        last_required_parameter_index -= 1;
     }
 
     // Check each argument vs parameter type
-    for index in 0..arguments_len {
-        let argument_type = arguments.get(index).unwrap().expr_type(env);
-
+    for index in 0..last_required_parameter_index {
         let parameter_type = parameters.get(index).unwrap();
-
-        if argument_type == DataType::Any || *parameter_type == DataType::Any {
-            continue;
+        let argument = arguments.get(index).unwrap();
+        match is_expression_type_equals(env, argument, parameter_type) {
+            TypeCheckResult::RightSideCasted(new_expr) => {
+                arguments[index] = new_expr;
+            }
+            TypeCheckResult::LeftSideCasted(new_expr) => {
+                arguments[index] = new_expr;
+            }
+            TypeCheckResult::NotEqualAndCantImplicitCast => {
+                let argument_type = argument.expr_type(env);
+                return Err(Diagnostic::error(&format!(
+                    "Function `{}` argument number {} with type `{}` don't match expected type `{}`",
+                    function_name, index, argument_type, parameter_type
+                ))
+                .with_location(location).as_boxed());
+            }
+            _ => {}
         }
+    }
 
-        if argument_type != *parameter_type {
-            let message = format!(
-                "Function `{}` argument number {} with type `{}` don't match expected type `{}`",
-                function_name,
-                index,
-                argument_type.literal(),
-                parameter_type.literal()
-            );
-            return Err(GQLError { message, location });
+    // Check the optional or varargs parameters if exists
+    if has_optional_parameter || has_varargs_parameter {
+        let last_parameter_type = parameters.get(last_required_parameter_index).unwrap();
+
+        for index in last_required_parameter_index..arguments_len {
+            let argument = arguments.get(index).unwrap();
+            match is_expression_type_equals(env, argument, last_parameter_type) {
+                TypeCheckResult::RightSideCasted(new_expr) => {
+                    arguments[index] = new_expr;
+                }
+                TypeCheckResult::LeftSideCasted(new_expr) => {
+                    arguments[index] = new_expr;
+                }
+                TypeCheckResult::NotEqualAndCantImplicitCast => {
+                    let argument_type = arguments.get(index).unwrap().expr_type(env);
+                    if !last_parameter_type.eq(&argument_type) {
+                        return Err(Diagnostic::error(&format!(
+                            "Function `{}` argument number {} with type `{}` don't match expected type `{}`",
+                            function_name, index, argument_type, last_parameter_type
+                        ))
+                        .with_location(location).as_boxed());
+                    }
+                }
+                _ => {}
+            }
         }
     }
 
     Ok(())
 }
 
-fn check_all_values_are_same_type(
-    env: &mut Enviroment,
-    arguments: &Vec<Box<dyn Expression>>,
-) -> Result<DataType, ()> {
-    let arguments_count = arguments.len();
-    if arguments_count == 0 {
-        return Ok(DataType::Any);
-    }
-
-    let data_type = arguments[0].expr_type(env);
-    for argument in arguments.iter().take(arguments_count).skip(1) {
-        let expr_type = argument.expr_type(env);
-        if data_type != expr_type {
-            return Err(());
-        }
-    }
-
-    Ok(data_type)
-}
-
 fn type_check_selected_fields(
-    env: &mut Enviroment,
+    env: &mut Environment,
     table_name: &str,
     fields_names: &Vec<String>,
     tokens: &Vec<Token>,
     position: usize,
-) -> Result<(), GQLError> {
+) -> Result<(), Box<Diagnostic>> {
     for field_name in fields_names {
         if let Some(data_type) = env.resolve_type(field_name) {
             if data_type.is_undefined() {
-                return Err(GQLError {
-                    message: format!("No field with name `{}`", field_name),
-                    location: get_safe_location(tokens, position),
-                });
+                return Err(Box::new(
+                    Diagnostic::error(&format!("No field with name `{}`", field_name))
+                        .with_location(get_safe_location(tokens, position)),
+                ));
             }
             continue;
         }
 
-        let message = format!(
+        return Err(Diagnostic::error(&format!(
             "Table `{}` has no field with name `{}`",
             table_name, field_name
-        );
-
-        return Err(GQLError {
-            message,
-            location: get_safe_location(tokens, position),
-        });
+        ))
+        .add_help("Check the documentations to see available fields for each tables")
+        .with_location(get_safe_location(tokens, position))
+        .as_boxed());
     }
     Ok(())
 }
 
-fn un_expected_statement_error(tokens: &Vec<Token>, position: &mut usize) -> GQLError {
-    let location = get_safe_location(tokens, *position);
-    GQLError {
-        message: "Unexpected statement".to_owned(),
-        location,
+fn un_expected_statement_error(tokens: &[Token], position: &mut usize) -> Box<Diagnostic> {
+    let token: &Token = &tokens[*position];
+    let location = token.location;
+
+    // Query starts with invalid statement
+    if location.start == 0 {
+        return Diagnostic::error("Unexpected statement")
+            .add_help("Expect query to start with `SELECT` or `SET` keyword")
+            .with_location(location)
+            .as_boxed();
     }
+
+    // General un expected statement error
+    Diagnostic::error("Unexpected statement")
+        .with_location(location)
+        .as_boxed()
 }
 
-fn un_expected_expression_error(tokens: &Vec<Token>, position: &usize) -> GQLError {
+fn un_expected_expression_error(tokens: &Vec<Token>, position: &usize) -> Box<Diagnostic> {
     let location = get_safe_location(tokens, *position);
 
     if *position == 0 || *position >= tokens.len() {
-        return GQLError {
-            message: "Can't complete parsing this expression".to_owned(),
-            location,
-        };
+        return Diagnostic::error("Can't complete parsing this expression")
+            .with_location(location)
+            .as_boxed();
     }
 
     let current = &tokens[*position];
@@ -1810,78 +2113,81 @@ fn un_expected_expression_error(tokens: &Vec<Token>, position: &usize) -> GQLErr
 
     // Make sure `ASC` and `DESC` are used in ORDER BY statement
     if current.kind == TokenKind::Ascending || current.kind == TokenKind::Descending {
-        return GQLError {
-            message: "`ASC` and `DESC` must be used in `ORDER BY` statement".to_owned(),
-            location,
-        };
+        return Diagnostic::error("`ASC` and `DESC` must be used in `ORDER BY` statement")
+            .with_location(location)
+            .as_boxed();
     }
 
     // Similar to SQL just `=` is used for equality comparisons
     if previous.kind == TokenKind::Equal && current.kind == TokenKind::Equal {
-        return GQLError {
-            message: "Unexpected `==`, Just use `=` to check equality".to_owned(),
-            location,
-        };
+        return Diagnostic::error("Unexpected `==`, Just use `=` to check equality")
+            .with_location(location)
+            .as_boxed();
     }
 
     // `< =` the user may mean to write `<=`
     if previous.kind == TokenKind::Greater && current.kind == TokenKind::Equal {
-        return GQLError {
-            message: "Unexpected `> =`, do you mean `>=`?".to_owned(),
-            location,
-        };
+        return Diagnostic::error("Unexpected `> =`, do you mean `>=`?")
+            .with_location(location)
+            .as_boxed();
     }
 
     // `> =` the user may mean to write `>=`
     if previous.kind == TokenKind::Less && current.kind == TokenKind::Equal {
-        return GQLError {
-            message: "Unexpected `< =`, do you mean `<=`?".to_owned(),
-            location,
-        };
+        return Diagnostic::error("Unexpected `< =`, do you mean `<=`?")
+            .with_location(location)
+            .as_boxed();
     }
 
     // `> >` the user may mean to write '>>'
     if previous.kind == TokenKind::Greater && current.kind == TokenKind::Greater {
-        return GQLError {
-            message: "Unexpected `> >`, do you mean `>>`?".to_owned(),
-            location,
-        };
+        return Diagnostic::error("Unexpected `> >`, do you mean `>>`?")
+            .with_location(location)
+            .as_boxed();
     }
 
     // `< <` the user may mean to write `<<`
     if previous.kind == TokenKind::Less && current.kind == TokenKind::Less {
-        return GQLError {
-            message: "Unexpected `< <`, do you mean `<<`?".to_owned(),
-            location,
-        };
+        return Diagnostic::error("Unexpected `< <`, do you mean `<<`?")
+            .with_location(location)
+            .as_boxed();
     }
 
     // `< >` the user may mean to write `<>`
     if previous.kind == TokenKind::Less && current.kind == TokenKind::Greater {
-        return GQLError {
-            message: "Unexpected `< >`, do you mean `<>`?".to_owned(),
-            location,
-        };
+        return Diagnostic::error("Unexpected `< >`, do you mean `<>`?")
+            .with_location(location)
+            .as_boxed();
     }
 
     // Default error message
-    GQLError {
-        message: "Can't complete parsing this expression".to_owned(),
-        location,
-    }
+    Diagnostic::error("Can't complete parsing this expression")
+        .with_location(location)
+        .as_boxed()
 }
 
-/// Remove last token if it semicolon, because it's optional
-fn consume_optional_semicolon_if_exists(tokens: &mut Vec<Token>) {
-    if tokens.is_empty() {
-        return;
-    }
+/// Report error message for extra content after the end of current statement
+fn un_expected_content_after_correct_statement(
+    statement_name: &str,
+    tokens: &Vec<Token>,
+    position: &mut usize,
+) -> Box<Diagnostic> {
+    let error_message = &format!(
+        "Unexpected content after the end of `{}` statement",
+        statement_name.to_uppercase()
+    );
 
-    if let Some(last_token) = tokens.last() {
-        if last_token.kind == TokenKind::Semicolon {
-            tokens.remove(tokens.len() - 1);
-        }
-    }
+    // The range of extra content
+    let location_of_extra_content = Location {
+        start: tokens[*position].location.start,
+        end: tokens[tokens.len() - 1].location.end,
+    };
+
+    Diagnostic::error(error_message)
+        .add_help("Try to check if statement keyword is missing")
+        .add_help("Try remove un expected extra content")
+        .with_location(location_of_extra_content)
+        .as_boxed()
 }
 
 #[allow(clippy::borrowed_box)]
@@ -1901,7 +2207,7 @@ fn get_expression_name(expression: &Box<dyn Expression>) -> Result<String, ()> {
 }
 
 #[inline(always)]
-fn register_current_table_fields_types(table_name: &str, symbol_table: &mut Enviroment) {
+fn register_current_table_fields_types(table_name: &str, symbol_table: &mut Environment) {
     let table_fields_names = &TABLES_FIELDS_NAMES[table_name];
     for field_name in table_fields_names {
         let field_type = TABLES_FIELDS_TYPES[field_name].clone();
@@ -1951,6 +2257,11 @@ fn get_safe_location(tokens: &Vec<Token>, position: usize) -> Location {
 }
 
 #[inline(always)]
+fn is_assignment_operator(token: &Token) -> bool {
+    token.kind == TokenKind::Equal || token.kind == TokenKind::ColonEqual
+}
+
+#[inline(always)]
 fn is_term_operator(token: &Token) -> bool {
     token.kind == TokenKind::Plus || token.kind == TokenKind::Minus
 }
@@ -1987,11 +2298,15 @@ fn is_asc_or_desc(token: &Token) -> bool {
 }
 
 #[inline(always)]
-fn type_missmatch_error(location: Location, expected: DataType, actual: DataType) -> GQLError {
-    let message = format!(
+fn type_mismatch_error(
+    location: Location,
+    expected: DataType,
+    actual: DataType,
+) -> Box<Diagnostic> {
+    Diagnostic::error(&format!(
         "Type mismatch expected `{}`, got `{}`",
-        expected.literal(),
-        actual.literal()
-    );
-    GQLError { message, location }
+        expected, actual
+    ))
+    .with_location(location)
+    .as_boxed()
 }

@@ -1,10 +1,13 @@
 extern crate chrono;
 
+use chrono::Datelike;
 use chrono::NaiveDate;
 use chrono::NaiveDateTime;
 use chrono::NaiveTime;
 use chrono::TimeZone;
+use chrono::Timelike;
 use chrono::Utc;
+use chrono::Weekday;
 
 static CHRONO_TIME_FORMAT: &str = "%H:%M:%S";
 static CHRONO_DATE_FORMAT: &str = "%Y-%m-%d";
@@ -54,6 +57,50 @@ pub fn date_time_to_time_stamp(date: &str) -> i64 {
         return 0;
     }
     date_time.ok().unwrap().timestamp()
+}
+
+pub fn date_time_to_hour(date: i64) -> i64 {
+    let date_time = NaiveDateTime::from_timestamp_opt(date, 0);
+    let dt = date_time.unwrap().time();
+    dt.hour() as i64
+}
+
+pub fn date_to_day_name(date: i64) -> String {
+    let parsed_date = NaiveDateTime::from_timestamp_opt(date, 0).unwrap();
+
+    let day_name = match parsed_date.weekday() {
+        Weekday::Mon => "Monday",
+        Weekday::Tue => "Tuesday",
+        Weekday::Wed => "Wednesday",
+        Weekday::Thu => "Thursday",
+        Weekday::Fri => "Friday",
+        Weekday::Sat => "Saturday",
+        Weekday::Sun => "Sunday",
+    };
+
+    day_name.to_string()
+}
+
+pub fn date_to_month_name(date: i64) -> String {
+    let parsed_date = NaiveDateTime::from_timestamp_opt(date, 0).unwrap();
+
+    let month_name = match parsed_date.month() {
+        1 => "January",
+        2 => "February",
+        3 => "March",
+        4 => "April",
+        5 => "May",
+        6 => "June",
+        7 => "July",
+        8 => "August",
+        9 => "September",
+        10 => "October",
+        11 => "November",
+        12 => "December",
+        _ => "",
+    };
+
+    month_name.to_string()
 }
 
 pub fn time_stamp_from_year_and_day(year: i32, day_of_year: u32) -> i64 {

@@ -3,9 +3,10 @@ use crate::types::DataType;
 use crate::value::Value;
 
 use lazy_static::lazy_static;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 
-type Function = fn(Vec<Value>) -> Value;
+type Function = fn(&[Value]) -> Value;
 
 pub struct Prototype {
     pub parameters: Vec<DataType>,
@@ -30,6 +31,7 @@ lazy_static! {
         map.insert("datalength", text_datalength);
         map.insert("char", text_char);
         map.insert("nchar", text_char);
+        map.insert("charindex", text_charindex);
         map.insert("replace", text_replace);
         map.insert("substring", text_substring);
         map.insert("stuff", text_stuff);
@@ -38,6 +40,7 @@ lazy_static! {
         map.insert("soundex", text_soundex);
         map.insert("concat", text_concat);
         map.insert("unicode", text_unicode);
+        map.insert("strcmp", text_strcmp);
 
         // Date functions
         map.insert("current_date", date_current_date);
@@ -45,6 +48,11 @@ lazy_static! {
         map.insert("current_timestamp", date_current_timestamp);
         map.insert("now", date_current_timestamp);
         map.insert("makedate", date_make_date);
+        map.insert("maketime", date_make_time);
+        map.insert("dayname", date_dayname);
+        map.insert("monthname", date_monthname);
+        map.insert("hour", date_hour);
+        map.insert("isdate", date_is_date);
 
         // Numeric functions
         map.insert("abs", numeric_abs);
@@ -55,12 +63,18 @@ lazy_static! {
         map.insert("sin", numeric_sin);
         map.insert("asin", numeric_asin);
         map.insert("cos", numeric_cos);
+        map.insert("acos", numeric_acos);
         map.insert("tan", numeric_tan);
+        map.insert("atan", numeric_atan);
+        map.insert("atn2", numeric_atn2);
+        map.insert("sign", numeric_sign);
 
         // Other Functions
         map.insert("isnull", general_is_null);
         map.insert("isnumeric", general_is_numeric);
         map.insert("typeof", general_type_of);
+        map.insert("greatest", general_greatest);
+        map.insert("least", general_least);
         map
     };
 }
@@ -168,6 +182,13 @@ lazy_static! {
             },
         );
         map.insert(
+            "charindex",
+            Prototype {
+                parameters: vec![DataType::Text, DataType::Text],
+                result: DataType::Integer,
+            }
+        );
+        map.insert(
             "replace",
             Prototype {
                 parameters: vec![DataType::Text, DataType::Text, DataType::Text],
@@ -212,7 +233,7 @@ lazy_static! {
         map.insert(
             "concat",
             Prototype {
-                parameters: vec![DataType::Text, DataType::Text],
+                parameters: vec![DataType::Any, DataType::Any, DataType::Varargs(Box::new(DataType::Any))],
                 result: DataType::Text
              },
         );
@@ -223,6 +244,7 @@ lazy_static! {
                 result: DataType::Integer
              },
         );
+        map.insert("strcmp", Prototype { parameters: vec![DataType::Text, DataType::Text], result: DataType::Integer });
 
         // Date functions
         map.insert(
@@ -259,6 +281,41 @@ lazy_static! {
                 parameters: vec![DataType::Integer, DataType::Integer],
                 result: DataType::Date,
             },
+        );
+        map.insert(
+            "maketime",
+            Prototype {
+                parameters: vec![DataType::Integer, DataType::Integer, DataType::Integer],
+                result: DataType::Time,
+            },
+        );
+        map.insert(
+            "dayname",
+            Prototype {
+                parameters: vec![DataType::Date],
+                result: DataType::Text,
+            }
+        );
+        map.insert(
+            "monthname",
+            Prototype {
+                parameters: vec![DataType::Date],
+                result: DataType::Text,
+            }
+        );
+        map.insert(
+            "hour",
+            Prototype {
+                parameters: vec![DataType::DateTime],
+                result: DataType::Integer,
+            }
+        );
+        map.insert(
+            "isdate",
+            Prototype {
+                parameters: vec![DataType::Any],
+                result: DataType::Boolean,
+            }
         );
         // Numeric functions
         map.insert(
@@ -318,10 +375,38 @@ lazy_static! {
             },
         );
         map.insert(
+            "acos",
+            Prototype {
+                parameters: vec![DataType::Float],
+                result: DataType::Float,
+            },
+        );
+        map.insert(
             "tan",
             Prototype {
                 parameters: vec![DataType::Float],
                 result: DataType::Float,
+            },
+        );
+        map.insert(
+            "atan",
+            Prototype {
+                parameters: vec![DataType::Float],
+                result: DataType::Float,
+            },
+        );
+        map.insert(
+            "atn2",
+            Prototype {
+                parameters: vec![DataType::Float, DataType::Float],
+                result: DataType::Float,
+            },
+        );
+        map.insert(
+            "sign",
+            Prototype {
+                parameters: vec![DataType::Float],
+                result: DataType::Integer,
             },
         );
         // General functions
@@ -346,52 +431,66 @@ lazy_static! {
                 result: DataType::Text,
             },
         );
+        map.insert(
+            "greatest",
+            Prototype {
+                parameters: vec![DataType::Any, DataType::Any, DataType::Varargs(Box::new(DataType::Any))],
+                result: DataType::Any
+             },
+        );
+        map.insert(
+            "least",
+            Prototype {
+                parameters: vec![DataType::Any, DataType::Any, DataType::Varargs(Box::new(DataType::Any))],
+                result: DataType::Any
+             },
+        );
         map
     };
 }
 
 // String functions
 
-fn text_lowercase(inputs: Vec<Value>) -> Value {
+fn text_lowercase(inputs: &[Value]) -> Value {
     Value::Text(inputs[0].as_text().to_lowercase())
 }
 
-fn text_uppercase(inputs: Vec<Value>) -> Value {
+fn text_uppercase(inputs: &[Value]) -> Value {
     Value::Text(inputs[0].as_text().to_uppercase())
 }
 
-fn text_reverse(inputs: Vec<Value>) -> Value {
+fn text_reverse(inputs: &[Value]) -> Value {
     Value::Text(inputs[0].as_text().chars().rev().collect::<String>())
 }
 
-fn text_replicate(inputs: Vec<Value>) -> Value {
+fn text_replicate(inputs: &[Value]) -> Value {
     let str = inputs[0].as_text();
     let count = inputs[1].as_int() as usize;
     Value::Text(str.repeat(count))
 }
 
-fn text_space(inputs: Vec<Value>) -> Value {
+fn text_space(inputs: &[Value]) -> Value {
     let n = inputs[0].as_int() as usize;
     Value::Text(" ".repeat(n))
 }
 
-fn text_trim(inputs: Vec<Value>) -> Value {
+fn text_trim(inputs: &[Value]) -> Value {
     Value::Text(inputs[0].as_text().trim().to_string())
 }
 
-fn text_left_trim(inputs: Vec<Value>) -> Value {
+fn text_left_trim(inputs: &[Value]) -> Value {
     Value::Text(inputs[0].as_text().trim_start().to_string())
 }
 
-fn text_right_trim(inputs: Vec<Value>) -> Value {
+fn text_right_trim(inputs: &[Value]) -> Value {
     Value::Text(inputs[0].as_text().trim_end().to_string())
 }
 
-fn text_len(inputs: Vec<Value>) -> Value {
+fn text_len(inputs: &[Value]) -> Value {
     Value::Integer(inputs[0].as_text().len() as i64)
 }
 
-fn text_ascii(inputs: Vec<Value>) -> Value {
+fn text_ascii(inputs: &[Value]) -> Value {
     let text = inputs[0].as_text();
     if text.is_empty() {
         return Value::Integer(0);
@@ -399,7 +498,7 @@ fn text_ascii(inputs: Vec<Value>) -> Value {
     Value::Integer(text.chars().next().unwrap() as i64)
 }
 
-fn text_left(inputs: Vec<Value>) -> Value {
+fn text_left(inputs: &[Value]) -> Value {
     let text = inputs[0].as_text();
     if text.is_empty() {
         return Value::Text("".to_string());
@@ -417,12 +516,12 @@ fn text_left(inputs: Vec<Value>) -> Value {
     Value::Text(substring)
 }
 
-fn text_datalength(inputs: Vec<Value>) -> Value {
+fn text_datalength(inputs: &[Value]) -> Value {
     let text = inputs[0].as_text();
     Value::Integer(text.as_bytes().len() as i64)
 }
 
-fn text_char(inputs: Vec<Value>) -> Value {
+fn text_char(inputs: &[Value]) -> Value {
     let code = inputs[0].as_int() as u32;
     if let Some(character) = char::from_u32(code) {
         return Value::Text(character.to_string());
@@ -430,7 +529,18 @@ fn text_char(inputs: Vec<Value>) -> Value {
     Value::Text("".to_string())
 }
 
-fn text_replace(inputs: Vec<Value>) -> Value {
+fn text_charindex(inputs: &[Value]) -> Value {
+    let substr = inputs[0].as_text();
+    let input = inputs[1].as_text();
+
+    if let Some(index) = input.to_lowercase().find(&substr.to_lowercase()) {
+        Value::Integer(index as i64 + 1)
+    } else {
+        Value::Integer(0)
+    }
+}
+
+fn text_replace(inputs: &[Value]) -> Value {
     let text = inputs[0].as_text();
     let old_string = inputs[1].as_text();
     let new_string = inputs[2].as_text();
@@ -450,7 +560,7 @@ fn text_replace(inputs: Vec<Value>) -> Value {
     Value::Text(result)
 }
 
-fn text_substring(inputs: Vec<Value>) -> Value {
+fn text_substring(inputs: &[Value]) -> Value {
     let text = inputs[0].as_text();
     //according to the specs, a stirng starts at position 1.
     //but in Rust, the index of a string starts from 0
@@ -467,7 +577,7 @@ fn text_substring(inputs: Vec<Value>) -> Value {
     Value::Text(text[start..(start + length as usize)].to_string())
 }
 
-fn text_stuff(inputs: Vec<Value>) -> Value {
+fn text_stuff(inputs: &[Value]) -> Value {
     let text = inputs[0].as_text();
     let start = (inputs[1].as_int() - 1) as usize;
     let length = inputs[2].as_int() as usize;
@@ -487,7 +597,7 @@ fn text_stuff(inputs: Vec<Value>) -> Value {
     Value::Text(text.into_iter().collect())
 }
 
-fn text_right(inputs: Vec<Value>) -> Value {
+fn text_right(inputs: &[Value]) -> Value {
     let text = inputs[0].as_text();
     if text.is_empty() {
         return Value::Text("".to_string());
@@ -502,7 +612,7 @@ fn text_right(inputs: Vec<Value>) -> Value {
     Value::Text(text[text.len() - number_of_chars..text.len()].to_string())
 }
 
-fn text_translate(inputs: Vec<Value>) -> Value {
+fn text_translate(inputs: &[Value]) -> Value {
     let mut text = inputs[0].as_text();
     let characters = inputs[1].as_text();
     let translations = inputs[2].as_text();
@@ -519,14 +629,14 @@ fn text_translate(inputs: Vec<Value>) -> Value {
     Value::Text(text)
 }
 
-fn text_unicode(inputs: Vec<Value>) -> Value {
+fn text_unicode(inputs: &[Value]) -> Value {
     if let Some(c) = inputs[0].as_text().chars().next() {
         return Value::Integer((c as u32).into());
     }
     Value::Integer(0)
 }
 
-fn text_soundex(inputs: Vec<Value>) -> Value {
+fn text_soundex(inputs: &[Value]) -> Value {
     let text = inputs[0].as_text();
     if text.is_empty() {
         return Value::Text("".to_string());
@@ -566,97 +676,185 @@ fn text_soundex(inputs: Vec<Value>) -> Value {
     Value::Text(result)
 }
 
-fn text_concat(inputs: Vec<Value>) -> Value {
-    let text: Vec<String> = inputs.iter().map(|v| v.as_text()).collect();
+fn text_concat(inputs: &[Value]) -> Value {
+    let text: Vec<String> = inputs.iter().map(|v| v.to_string()).collect();
     Value::Text(text.concat())
+}
+
+fn text_strcmp(inputs: &[Value]) -> Value {
+    Value::Integer(match inputs[0].as_text().cmp(&inputs[1].as_text()) {
+        std::cmp::Ordering::Less => 1,
+        std::cmp::Ordering::Equal => 2,
+        std::cmp::Ordering::Greater => 0,
+    })
 }
 
 // Date functions
 
-fn date_current_date(_inputs: Vec<Value>) -> Value {
+fn date_current_date(_inputs: &[Value]) -> Value {
     let time_stamp = date_utils::get_unix_timestamp_ms();
     Value::Date(time_stamp)
 }
 
-fn date_current_time(_inputs: Vec<Value>) -> Value {
+fn date_current_time(_inputs: &[Value]) -> Value {
     let time_stamp = date_utils::get_unix_timestamp_ms();
     let time = date_utils::time_stamp_to_time(time_stamp);
     Value::Time(time)
 }
 
-fn date_current_timestamp(_inputs: Vec<Value>) -> Value {
+fn date_current_timestamp(_inputs: &[Value]) -> Value {
     let time_stamp = date_utils::get_unix_timestamp_ms();
     Value::DateTime(time_stamp)
 }
 
-fn date_make_date(inputs: Vec<Value>) -> Value {
+fn date_make_date(inputs: &[Value]) -> Value {
     let year = inputs[0].as_int() as i32;
     let day_of_year = inputs[1].as_int() as u32;
     let time_stamp = date_utils::time_stamp_from_year_and_day(year, day_of_year);
     Value::Date(time_stamp)
 }
 
+fn date_make_time(inputs: &[Value]) -> Value {
+    let hour = inputs[0].as_int();
+    let minute = inputs[1].as_int();
+    let second = inputs[2].as_int();
+    Value::Time(format!("{}:{:02}:{:02}", hour, minute, second))
+}
+
+fn date_dayname(inputs: &[Value]) -> Value {
+    let date = inputs[0].as_date();
+    let date_str = date_utils::date_to_day_name(date);
+    Value::Text(date_str)
+}
+
+fn date_monthname(inputs: &[Value]) -> Value {
+    let date = inputs[0].as_date();
+    let month_str = date_utils::date_to_month_name(date);
+    Value::Text(month_str)
+}
+
+fn date_hour(inputs: &[Value]) -> Value {
+    let date = inputs[0].as_date_time();
+    let hour = date_utils::date_time_to_hour(date);
+    Value::Integer(hour)
+}
+
+fn date_is_date(inputs: &[Value]) -> Value {
+    Value::Boolean(inputs[0].data_type().is_date())
+}
+
 // Numeric functions
 
-fn numeric_abs(inputs: Vec<Value>) -> Value {
+fn numeric_abs(inputs: &[Value]) -> Value {
     let value = inputs[0].as_int();
     Value::Integer(value.abs())
 }
 
-fn numeric_pi(_inputs: Vec<Value>) -> Value {
+fn numeric_pi(_inputs: &[Value]) -> Value {
     let pi = std::f64::consts::PI;
     Value::Float(pi)
 }
 
-fn numeric_floor(inputs: Vec<Value>) -> Value {
+fn numeric_floor(inputs: &[Value]) -> Value {
     let float_value = inputs[0].as_float();
     Value::Integer(float_value.floor() as i64)
 }
 
-fn numeric_round(inputs: Vec<Value>) -> Value {
+fn numeric_round(inputs: &[Value]) -> Value {
     let float_value = inputs[0].as_float();
     Value::Integer(float_value.round() as i64)
 }
 
-fn numeric_square(inputs: Vec<Value>) -> Value {
+fn numeric_square(inputs: &[Value]) -> Value {
     let int_value = inputs[0].as_int();
     Value::Integer(int_value * int_value)
 }
 
-fn numeric_sin(inputs: Vec<Value>) -> Value {
+fn numeric_sin(inputs: &[Value]) -> Value {
     let float_value = inputs[0].as_float();
     Value::Float(f64::sin(float_value))
 }
 
-fn numeric_asin(inputs: Vec<Value>) -> Value {
+fn numeric_asin(inputs: &[Value]) -> Value {
     let float_value = inputs[0].as_float();
     Value::Float(f64::asin(float_value))
 }
 
-fn numeric_cos(inputs: Vec<Value>) -> Value {
+fn numeric_cos(inputs: &[Value]) -> Value {
     let float_value = inputs[0].as_float();
     Value::Float(f64::cos(float_value))
 }
 
-fn numeric_tan(inputs: Vec<Value>) -> Value {
+fn numeric_acos(inputs: &[Value]) -> Value {
+    let float_value = inputs[0].as_float();
+    Value::Float(f64::acos(float_value))
+}
+
+fn numeric_tan(inputs: &[Value]) -> Value {
     let float_value = inputs[0].as_float();
     Value::Float(f64::tan(float_value))
 }
 
+fn numeric_atan(inputs: &[Value]) -> Value {
+    let float_value = inputs[0].as_float();
+    Value::Float(f64::atan(float_value))
+}
+
+fn numeric_atn2(inputs: &[Value]) -> Value {
+    let first = inputs[0].as_float();
+    let other = inputs[1].as_float();
+    Value::Float(f64::atan2(first, other))
+}
+
+fn numeric_sign(inputs: &[Value]) -> Value {
+    let float_value = inputs[0].as_float();
+    if float_value == 0.0 {
+        Value::Integer(0)
+    } else if float_value > 0.0 {
+        Value::Integer(1)
+    } else {
+        Value::Integer(-1)
+    }
+}
+
 // General functions
 
-fn general_is_null(inputs: Vec<Value>) -> Value {
+fn general_is_null(inputs: &[Value]) -> Value {
     Value::Boolean(inputs[0].data_type() == DataType::Null)
 }
 
-fn general_is_numeric(inputs: Vec<Value>) -> Value {
+fn general_is_numeric(inputs: &[Value]) -> Value {
     let input_type = inputs[0].data_type();
     Value::Boolean(input_type.is_number())
 }
 
-fn general_type_of(inputs: Vec<Value>) -> Value {
+fn general_type_of(inputs: &[Value]) -> Value {
     let input_type = inputs[0].data_type();
-    Value::Text(input_type.literal().to_string())
+    Value::Text(input_type.to_string())
+}
+
+fn general_greatest(inputs: &[Value]) -> Value {
+    let mut max = &inputs[0];
+
+    for value in inputs.iter().skip(1) {
+        if max.compare(value) == Ordering::Greater {
+            max = value;
+        }
+    }
+
+    max.to_owned()
+}
+
+fn general_least(inputs: &[Value]) -> Value {
+    let mut least = &inputs[0];
+
+    for value in inputs.iter().skip(1) {
+        if least.compare(value) == Ordering::Less {
+            least = value;
+        }
+    }
+
+    least.to_owned()
 }
 
 #[cfg(test)]

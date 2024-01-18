@@ -3,10 +3,12 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 
 use gitql_ast::aggregation::AGGREGATIONS;
-use gitql_ast::enviroment::Enviroment;
-use gitql_ast::object::flat_gql_groups;
-use gitql_ast::object::GQLObject;
-use gitql_ast::statement::AggregationFunctionsStatement;
+use gitql_ast::environment::Environment;
+use gitql_ast::object::GitQLObject;
+use gitql_ast::object::Group;
+use gitql_ast::object::Row;
+use gitql_ast::statement::AggregateValue;
+use gitql_ast::statement::AggregationsStatement;
 use gitql_ast::statement::GlobalVariableStatement;
 use gitql_ast::statement::GroupByStatement;
 use gitql_ast::statement::HavingStatement;
@@ -26,14 +28,14 @@ use crate::engine_function::select_gql_objects;
 
 #[allow(clippy::borrowed_box)]
 pub fn execute_statement(
-    env: &mut Enviroment,
+    env: &mut Environment,
     statement: &Box<dyn Statement>,
     repo: &gix::Repository,
-    groups: &mut Vec<Vec<GQLObject>>,
+    gitql_object: &mut GitQLObject,
     alias_table: &mut HashMap<String, String>,
     hidden_selection: &Vec<String>,
 ) -> Result<(), String> {
-    match statement.get_statement_kind() {
+    match statement.kind() {
         Select => {
             let statement = statement
                 .as_any()
@@ -45,50 +47,50 @@ pub fn execute_statement(
                 alias_table.insert(alias.0.to_string(), alias.1.to_string());
             }
 
-            execute_select_statement(env, statement, repo, groups, hidden_selection)
+            execute_select_statement(env, statement, repo, gitql_object, hidden_selection)
         }
         Where => {
             let statement = statement.as_any().downcast_ref::<WhereStatement>().unwrap();
-            execute_where_statement(env, statement, groups)
+            execute_where_statement(env, statement, gitql_object)
         }
         Having => {
             let statement = statement
                 .as_any()
                 .downcast_ref::<HavingStatement>()
                 .unwrap();
-            execute_having_statement(env, statement, groups)
+            execute_having_statement(env, statement, gitql_object)
         }
         Limit => {
             let statement = statement.as_any().downcast_ref::<LimitStatement>().unwrap();
-            execute_limit_statement(statement, groups)
+            execute_limit_statement(statement, gitql_object)
         }
         Offset => {
             let statement = statement
                 .as_any()
                 .downcast_ref::<OffsetStatement>()
                 .unwrap();
-            execute_offset_statement(statement, groups)
+            execute_offset_statement(statement, gitql_object)
         }
         OrderBy => {
             let statement = statement
                 .as_any()
                 .downcast_ref::<OrderByStatement>()
                 .unwrap();
-            execute_order_by_statement(env, statement, groups)
+            execute_order_by_statement(env, statement, gitql_object)
         }
         GroupBy => {
             let statement = statement
                 .as_any()
                 .downcast_ref::<GroupByStatement>()
                 .unwrap();
-            execute_group_by_statement(statement, groups)
+            execute_group_by_statement(statement, gitql_object)
         }
         AggregateFunction => {
             let statement = statement
                 .as_any()
-                .downcast_ref::<AggregationFunctionsStatement>()
+                .downcast_ref::<AggregationsStatement>()
                 .unwrap();
-            execute_aggregation_function_statement(statement, groups, alias_table)
+            execute_aggregation_function_statement(env, statement, gitql_object, alias_table)
         }
         GlobalVariable => {
             let statement = statement
@@ -101,10 +103,10 @@ pub fn execute_statement(
 }
 
 fn execute_select_statement(
-    env: &mut Enviroment,
+    env: &mut Environment,
     statement: &SelectStatement,
     repo: &gix::Repository,
-    groups: &mut Vec<Vec<GQLObject>>,
+    gitql_object: &mut GitQLObject,
     hidden_selections: &Vec<String>,
 ) -> Result<(), String> {
     // Append hidden selection to the selected fields names
@@ -112,112 +114,133 @@ fn execute_select_statement(
     if !statement.table_name.is_empty() {
         for hidden in hidden_selections {
             if !fields_names.contains(hidden) {
-                fields_names.insert(0, hidden.to_string());
+                fields_names.push(hidden.to_string());
             }
         }
     }
 
-    // Select obects from the target table
+    // Calculate list of titles once
+    for field_name in &fields_names {
+        gitql_object
+            .titles
+            .push(get_column_name(&statement.alias_table, field_name));
+    }
+
+    // Select objects from the target table
     let mut objects = select_gql_objects(
         env,
         repo,
         statement.table_name.to_string(),
         &fields_names,
+        &gitql_object.titles,
         &statement.fields_values,
-        &statement.alias_table,
     )?;
 
     // Push the selected elements as a first group
-    if groups.is_empty() {
-        groups.push(objects);
+    if gitql_object.is_empty() {
+        gitql_object.groups.push(objects);
     } else {
-        groups[0].append(&mut objects);
+        gitql_object.groups[0].rows.append(&mut objects.rows);
     }
 
     Ok(())
 }
 
 fn execute_where_statement(
-    env: &mut Enviroment,
+    env: &mut Environment,
     statement: &WhereStatement,
-    groups: &mut Vec<Vec<GQLObject>>,
+    gitql_object: &mut GitQLObject,
 ) -> Result<(), String> {
-    if groups.is_empty() {
+    if gitql_object.is_empty() {
         return Ok(());
     }
 
     // Perform where command only on the first group
     // because group by command not executed yet
-    let mut filtered_group: Vec<GQLObject> = vec![];
-    let first_group = groups.first().unwrap().iter();
+    let mut filtered_group: Group = Group { rows: vec![] };
+    let first_group = gitql_object.groups.first().unwrap().rows.iter();
     for object in first_group {
-        let eval_result = evaluate_expression(env, &statement.condition, &object.attributes);
+        let eval_result = evaluate_expression(
+            env,
+            &statement.condition,
+            &gitql_object.titles,
+            &object.values,
+        );
         if eval_result.is_err() {
             return Err(eval_result.err().unwrap());
         }
 
         if eval_result.ok().unwrap().as_bool() {
-            filtered_group.push(object.clone());
+            filtered_group.rows.push(Row {
+                values: object.values.clone(),
+            });
         }
     }
 
     // Update the main group with the filtered data
-    groups.remove(0);
-    groups.push(filtered_group);
+    gitql_object.groups.remove(0);
+    gitql_object.groups.push(filtered_group);
 
     Ok(())
 }
 
 fn execute_having_statement(
-    env: &mut Enviroment,
+    env: &mut Environment,
     statement: &HavingStatement,
-    groups: &mut Vec<Vec<GQLObject>>,
+    gitql_object: &mut GitQLObject,
 ) -> Result<(), String> {
-    if groups.is_empty() {
+    if gitql_object.is_empty() {
         return Ok(());
     }
 
-    if groups.len() > 1 {
-        flat_gql_groups(groups);
+    if gitql_object.len() > 1 {
+        gitql_object.flat()
     }
 
     // Perform where command only on the first group
     // because groups are already merged
-    let mut filtered_group: Vec<GQLObject> = vec![];
-    let first_group = groups.first().unwrap().iter();
+    let mut filtered_group: Group = Group { rows: vec![] };
+    let first_group = gitql_object.groups.first().unwrap().rows.iter();
     for object in first_group {
-        let eval_result = evaluate_expression(env, &statement.condition, &object.attributes);
+        let eval_result = evaluate_expression(
+            env,
+            &statement.condition,
+            &gitql_object.titles,
+            &object.values,
+        );
         if eval_result.is_err() {
             return Err(eval_result.err().unwrap());
         }
 
         if eval_result.ok().unwrap().as_bool() {
-            filtered_group.push(object.clone());
+            filtered_group.rows.push(Row {
+                values: object.values.clone(),
+            });
         }
     }
 
     // Update the main group with the filtered data
-    groups.remove(0);
-    groups.push(filtered_group);
+    gitql_object.groups.remove(0);
+    gitql_object.groups.push(filtered_group);
 
     Ok(())
 }
 
 fn execute_limit_statement(
     statement: &LimitStatement,
-    groups: &mut Vec<Vec<GQLObject>>,
+    gitql_object: &mut GitQLObject,
 ) -> Result<(), String> {
-    if groups.is_empty() {
+    if gitql_object.is_empty() {
         return Ok(());
     }
 
-    if groups.len() > 1 {
-        flat_gql_groups(groups);
+    if gitql_object.len() > 1 {
+        gitql_object.flat()
     }
 
-    let main_group: &mut Vec<GQLObject> = groups[0].as_mut();
+    let main_group: &mut Group = &mut gitql_object.groups[0];
     if statement.count <= main_group.len() {
-        main_group.drain(statement.count..main_group.len());
+        main_group.rows.drain(statement.count..main_group.len());
     }
 
     Ok(())
@@ -225,40 +248,43 @@ fn execute_limit_statement(
 
 fn execute_offset_statement(
     statement: &OffsetStatement,
-    groups: &mut Vec<Vec<GQLObject>>,
+    gitql_object: &mut GitQLObject,
 ) -> Result<(), String> {
-    if groups.is_empty() {
+    if gitql_object.is_empty() {
         return Ok(());
     }
 
-    if groups.len() > 1 {
-        flat_gql_groups(groups);
+    if gitql_object.len() > 1 {
+        gitql_object.flat()
     }
-    let main_group: &mut Vec<GQLObject> = groups[0].as_mut();
-    main_group.drain(0..cmp::min(statement.count, main_group.len()));
+
+    let main_group: &mut Group = &mut gitql_object.groups[0];
+    main_group
+        .rows
+        .drain(0..cmp::min(statement.count, main_group.len()));
 
     Ok(())
 }
 
 fn execute_order_by_statement(
-    env: &mut Enviroment,
+    env: &mut Environment,
     statement: &OrderByStatement,
-    groups: &mut Vec<Vec<GQLObject>>,
+    gitql_object: &mut GitQLObject,
 ) -> Result<(), String> {
-    if groups.is_empty() {
+    if gitql_object.is_empty() {
         return Ok(());
     }
 
-    if groups.len() > 1 {
-        flat_gql_groups(groups);
+    if gitql_object.len() > 1 {
+        gitql_object.flat();
     }
 
-    let main_group: &mut Vec<GQLObject> = groups[0].as_mut();
+    let main_group: &mut Group = &mut gitql_object.groups[0];
     if main_group.is_empty() {
         return Ok(());
     }
 
-    main_group.sort_by(|a, b| {
+    main_group.rows.sort_by(|a, b| {
         // The default ordering
         let mut ordering = Ordering::Equal;
 
@@ -270,8 +296,11 @@ fn execute_order_by_statement(
             }
 
             // Compare the two set of attributes using the current argument
-            let first = &evaluate_expression(env, argument, &a.attributes).unwrap_or(Value::Null);
-            let other = &evaluate_expression(env, argument, &b.attributes).unwrap_or(Value::Null);
+            let first = &evaluate_expression(env, argument, &gitql_object.titles, &a.values)
+                .unwrap_or(Value::Null);
+            let other = &evaluate_expression(env, argument, &gitql_object.titles, &b.values)
+                .unwrap_or(Value::Null);
+
             let current_ordering = first.compare(other);
 
             // If comparing result still equal, check the next argument
@@ -296,13 +325,13 @@ fn execute_order_by_statement(
 
 fn execute_group_by_statement(
     statement: &GroupByStatement,
-    groups: &mut Vec<Vec<GQLObject>>,
+    gitql_object: &mut GitQLObject,
 ) -> Result<(), String> {
-    if groups.is_empty() {
+    if gitql_object.is_empty() {
         return Ok(());
     }
 
-    let main_group: Vec<GQLObject> = groups.remove(0);
+    let main_group: Group = gitql_object.groups.remove(0);
     if main_group.is_empty() {
         return Ok(());
     }
@@ -313,8 +342,14 @@ fn execute_group_by_statement(
     // Track current group index
     let mut next_group_index = 0;
 
-    for object in main_group.into_iter() {
-        let field_value = object.attributes.get(&statement.field_name).unwrap();
+    for object in main_group.rows.into_iter() {
+        let field_index = gitql_object
+            .titles
+            .iter()
+            .position(|r| r.eq(&statement.field_name))
+            .unwrap();
+
+        let field_value = &object.values[field_index];
 
         // If there is an existing group for this value, append current object to it
         if let std::collections::hash_map::Entry::Vacant(e) =
@@ -322,13 +357,13 @@ fn execute_group_by_statement(
         {
             e.insert(next_group_index);
             next_group_index += 1;
-            groups.push(vec![object.to_owned()]);
+            gitql_object.groups.push(Group { rows: vec![object] });
         }
         // Push a new group for this unique value and update the next index
         else {
             let index = *groups_map.get(&field_value.as_text()).unwrap();
-            let target_group = &mut groups[index];
-            target_group.push(object.to_owned());
+            let target_group = &mut gitql_object.groups[index];
+            target_group.rows.push(object);
         }
     }
 
@@ -336,8 +371,9 @@ fn execute_group_by_statement(
 }
 
 fn execute_aggregation_function_statement(
-    statement: &AggregationFunctionsStatement,
-    groups: &mut Vec<Vec<GQLObject>>,
+    env: &mut Environment,
+    statement: &AggregationsStatement,
+    gitql_object: &mut GitQLObject,
     alias_table: &HashMap<String, String>,
 ) -> Result<(), String> {
     // Make sure you have at least one aggregation function to calculate
@@ -346,42 +382,76 @@ fn execute_aggregation_function_statement(
         return Ok(());
     }
 
-    // Used to determind if group by statement is executed before or not
-    let groups_count = groups.len();
+    // Used to determine if group by statement is executed before or not
+    let groups_count = gitql_object.len();
 
     // We should run aggregation function for each group
-    for group in groups {
+    for group in &mut gitql_object.groups {
         // No need to apply all aggregation if there is no selected elements
         if group.is_empty() {
             continue;
         }
 
+        // Resolve all aggregations functions first
         for aggregation in aggregations_map {
-            let function = aggregation.1;
+            if let AggregateValue::Function(function, argument) = aggregation.1 {
+                // Get alias name if exists or column name by default
 
-            // Get the target aggregation function
-            let aggregation_function = AGGREGATIONS.get(function.function_name.as_str()).unwrap();
+                let result_column_name = aggregation.0;
+                let column_name = get_column_name(alias_table, result_column_name);
 
-            // Execute aggregation function once for group
-            let result_column_name = aggregation.0;
-            let argument = &function.argument;
-            let result = &aggregation_function(&argument.to_string(), group);
+                let column_index = gitql_object
+                    .titles
+                    .iter()
+                    .position(|r| r.eq(&column_name))
+                    .unwrap();
 
-            // Get alias name if exists or column name by default
-            let column_name = get_column_name(alias_table, result_column_name);
+                // Get the target aggregation function
+                let aggregation_function = AGGREGATIONS.get(function.as_str()).unwrap();
+                let result =
+                    &aggregation_function(&argument.to_string(), &gitql_object.titles, group);
 
-            // Insert the calculated value in the group objects
-            for object in group.iter_mut() {
-                object
-                    .attributes
-                    .insert(column_name.to_string(), result.to_owned());
+                // Insert the calculated value in the group objects
+                for object in &mut group.rows {
+                    if column_index < object.values.len() {
+                        object.values[column_index] = result.clone();
+                    } else {
+                        object.values.push(result.clone());
+                    }
+                }
             }
         }
 
-        // In case of group by statement is exectued
+        // Resolve aggregations expressions
+        for aggregation in aggregations_map {
+            if let AggregateValue::Expression(expr) = aggregation.1 {
+                // Get alias name if exists or column name by default
+                let result_column_name = aggregation.0;
+                let column_name = get_column_name(alias_table, result_column_name);
+
+                let column_index = gitql_object
+                    .titles
+                    .iter()
+                    .position(|r| r.eq(&column_name))
+                    .unwrap();
+
+                // Insert the calculated value in the group objects
+                for object in group.rows.iter_mut() {
+                    let result =
+                        evaluate_expression(env, expr, &gitql_object.titles, &object.values)?;
+                    if column_index < object.values.len() {
+                        object.values[column_index] = result.clone();
+                    } else {
+                        object.values.push(result.clone());
+                    }
+                }
+            }
+        }
+
+        // In case of group by statement is executed
         // Remove all elements expect the first one
         if groups_count > 1 {
-            group.drain(1..);
+            group.rows.drain(1..);
         }
     }
 
@@ -389,10 +459,10 @@ fn execute_aggregation_function_statement(
 }
 
 pub fn execute_global_variable_statement(
-    env: &mut Enviroment,
+    env: &mut Environment,
     statement: &GlobalVariableStatement,
 ) -> Result<(), String> {
-    let value = evaluate_expression(env, &statement.value, &HashMap::default())?;
+    let value = evaluate_expression(env, &statement.value, &[], &vec![])?;
     env.globals.insert(statement.name.to_string(), value);
     Ok(())
 }
