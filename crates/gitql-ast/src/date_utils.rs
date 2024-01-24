@@ -249,6 +249,27 @@ mod tests {
     }
 
     #[test]
+    fn test_date_time_to_hour() {
+        let ret = date_time_to_hour(1705117592);
+        println!("date_time_to_hour: {}", ret);
+        assert_ne!(ret, 0);
+    }
+
+    #[test]
+    fn test_date_to_day_name() {
+        let ret = date_to_day_name(1705117592);
+        println!("date_to_day_name: {}", ret);
+        assert_ne!(ret, "".to_string());
+    }
+
+    #[test]
+    fn test_date_to_month_name() {
+        let ret = date_to_month_name(1705117592);
+        println!("date_to_month_name: {}", ret);
+        assert_ne!(ret, "".to_string());
+    }
+
+    #[test]
     fn test_time_stamp_from_year_and_day() {
         let ret = time_stamp_from_year_and_day(2024, 1);
         println!("time_stamp_from_year_and_day: {}", ret);

@@ -235,116 +235,266 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_datatype_is_type() {
-        let data_type: DataType = DataType::Text;
+    fn test_partialeq_eq() {
+        let partialeq = DataType::Any;
+        let other = DataType::Any;
 
-        let ret = data_type.is_type(DataType::Any);
-        assert_eq!(ret, false);
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
 
-        let ret = data_type.is_type(DataType::Text);
+        let partialeq = DataType::Variant(vec![DataType::Text, DataType::Integer]);
+        let other = DataType::Text;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Text;
+        let other = DataType::Variant(vec![DataType::Text, DataType::Integer]);
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Optional(Box::new(DataType::Text));
+        let other = DataType::Text;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Text;
+        let other = DataType::Optional(Box::new(DataType::Text));
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Varargs(Box::new(DataType::Text));
+        let other = DataType::Text;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Text;
+        let other = DataType::Varargs(Box::new(DataType::Text));
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Boolean;
+        let other = DataType::Boolean;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Integer;
+        let other = DataType::Integer;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Float;
+        let other = DataType::Float;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Integer;
+        let other = DataType::Integer;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Text;
+        let other = DataType::Text;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Date;
+        let other = DataType::Date;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Time;
+        let other = DataType::Time;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::DateTime;
+        let other = DataType::DateTime;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Null;
+        let other = DataType::Null;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+
+        let partialeq = DataType::Undefined;
+        let other = DataType::Undefined;
+
+        let ret = partialeq.eq(&other);
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_fmt() {
+        let dtype = DataType::Any;
+        assert_eq!(format!("{}", dtype), "Any");
+
+        let dtype = DataType::Text;
+        assert_eq!(format!("{}", dtype), "Text");
+
+        let dtype = DataType::Integer;
+        assert_eq!(format!("{}", dtype), "Integer");
+
+        let dtype = DataType::Float;
+        assert_eq!(format!("{}", dtype), "Float");
+
+        let dtype = DataType::Boolean;
+        assert_eq!(format!("{}", dtype), "Boolean");
+
+        let dtype = DataType::Date;
+        assert_eq!(format!("{}", dtype), "Date");
+
+        let dtype = DataType::Time;
+        assert_eq!(format!("{}", dtype), "Time");
+
+        let dtype = DataType::DateTime;
+        assert_eq!(format!("{}", dtype), "DateTime");
+
+        let dtype = DataType::Undefined;
+        assert_eq!(format!("{}", dtype), "Undefined");
+
+        let dtype = DataType::Null;
+        assert_eq!(format!("{}", dtype), "Null");
+
+        let dtype = DataType::Variant(vec![DataType::Text, DataType::Integer]);
+        assert_eq!(format!("{}", dtype), "[Text | Integer]");
+
+        let dtype = DataType::Optional(Box::new(DataType::Text));
+        assert_eq!(format!("{}", dtype), "Text?");
+
+        let dtype = DataType::Varargs(Box::new(DataType::Text));
+        assert_eq!(format!("{}", dtype), "...Text");
+    }
+
+    #[test]
+    fn test_datatype_is_any() {
+        let dtype = DataType::Any;
+
+        let ret = dtype.is_any();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_bool() {
+        let dtype = DataType::Boolean;
+
+        let ret = dtype.is_bool();
         assert_eq!(ret, true);
     }
 
     #[test]
     fn test_datatype_is_int() {
-        let data_type: DataType = DataType::Any;
-        let ret = data_type.is_int();
-        assert_eq!(ret, false);
+        let dtype = DataType::Integer;
 
-        let data_type: DataType = DataType::Integer;
-        let ret = data_type.is_int();
+        let ret = dtype.is_int();
         assert_eq!(ret, true);
     }
 
     #[test]
     fn test_datatype_is_float() {
-        let data_type: DataType = DataType::Any;
-        let ret = data_type.is_float();
-        assert_eq!(ret, false);
+        let dtype = DataType::Float;
 
-        let data_type: DataType = DataType::Float;
-        let ret = data_type.is_float();
+        let ret = dtype.is_float();
         assert_eq!(ret, true);
     }
 
     #[test]
     fn test_datatype_is_number() {
-        let data_type: DataType = DataType::Any;
-        let ret = data_type.is_number();
-        assert_eq!(ret, false);
+        let dtype = DataType::Integer;
 
-        let data_type: DataType = DataType::Integer;
-        let ret = data_type.is_number();
+        let ret = dtype.is_number();
         assert_eq!(ret, true);
 
-        let data_type: DataType = DataType::Float;
-        let ret = data_type.is_number();
+        let dtype = DataType::Float;
+
+        let ret = dtype.is_number();
         assert_eq!(ret, true);
     }
 
     #[test]
     fn test_datatype_is_text() {
-        let data_type: DataType = DataType::Any;
-        let ret = data_type.is_text();
-        assert_eq!(ret, false);
+        let dtype = DataType::Text;
 
-        let data_type: DataType = DataType::Text;
-        let ret = data_type.is_text();
+        let ret = dtype.is_text();
         assert_eq!(ret, true);
     }
 
     #[test]
     fn test_datatype_is_time() {
-        let data_type: DataType = DataType::Any;
-        let ret = data_type.is_time();
-        assert_eq!(ret, false);
+        let dtype = DataType::Time;
 
-        let data_type: DataType = DataType::Time;
-        let ret = data_type.is_time();
+        let ret = dtype.is_time();
         assert_eq!(ret, true);
     }
 
     #[test]
     fn test_datatype_is_date() {
-        let data_type: DataType = DataType::Any;
-        let ret = data_type.is_date();
-        assert_eq!(ret, false);
+        let dtype = DataType::Date;
 
-        let data_type: DataType = DataType::Date;
-        let ret = data_type.is_date();
+        let ret = dtype.is_date();
         assert_eq!(ret, true);
     }
 
     #[test]
     fn test_datatype_is_datetime() {
-        let data_type: DataType = DataType::Any;
-        let ret = data_type.is_datetime();
-        assert_eq!(ret, false);
+        let dtype = DataType::DateTime;
 
-        let data_type: DataType = DataType::DateTime;
-        let ret = data_type.is_datetime();
+        let ret = dtype.is_datetime();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_null() {
+        let dtype = DataType::Null;
+
+        let ret = dtype.is_null();
         assert_eq!(ret, true);
     }
 
     #[test]
     fn test_datatype_is_undefined() {
-        let data_type: DataType = DataType::Any;
-        let ret = data_type.is_undefined();
-        assert_eq!(ret, false);
+        let dtype = DataType::Undefined;
 
-        let data_type: DataType = DataType::Undefined;
-        let ret = data_type.is_undefined();
+        let ret = dtype.is_undefined();
         assert_eq!(ret, true);
     }
 
     #[test]
-    fn test_datatype_literal() {
-        let data_type: DataType = DataType::Any;
-        let ret = data_type.literal();
-        assert_eq!(ret, "Any");
+    fn test_datatype_is_variant() {
+        let dtype = DataType::Variant(vec![DataType::Text, DataType::Integer]);
 
-        let data_type: DataType = DataType::Text;
-        let ret = data_type.literal();
-        assert_eq!(ret, "Text");
+        let ret = dtype.is_variant();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_optional() {
+        let dtype = DataType::Optional(Box::new(DataType::Text));
+
+        let ret = dtype.is_optional();
+        assert_eq!(ret, true);
+    }
+
+    #[test]
+    fn test_datatype_is_varargs() {
+        let dtype = DataType::Varargs(Box::new(DataType::Text));
+
+        let ret = dtype.is_varargs();
+        assert_eq!(ret, true);
     }
 }

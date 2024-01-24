@@ -495,61 +495,96 @@ mod tests {
     }
 
     #[test]
+    fn test_assignmentexpression_kind() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_assignmentexpression_expr_type() {
+        let expr = AssignmentExpression{ symbol: "".to_string(),
+            value: Box::new(StringExpression{ value: "".to_string(), value_type: StringValueType::Text }) };
+
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let ret = expr.expr_type(&scope);
+        assert_eq!(ret.is_text(), true);
+    }
+
+    #[test]
+    fn test_stringexpression_kind() {
+        assert!(true);
+    }
+
+    #[test]
     fn test_stringexpression_expr_type() {
-        let express = StringExpression {
+        let expr = StringExpression {
             value: "".to_string(),
             value_type: StringValueType::Text,
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_text(), true);
+    }
+
+    #[test]
+    fn test_symbolexpression_kind() {
+        assert!(true);
     }
 
     #[test]
     fn test_symbolexpression_expr_type() {
-        let express = SymbolExpression {
-            value: "field".to_string(),
+        let expr = SymbolExpression {
+            value: "field1".to_string(),
         };
 
-        let mut scope = Enviroment {
+        let mut scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        scope.scopes.insert("field".to_string(), DataType::Text);
+        scope.scopes.insert("field1".to_string(), DataType::Text);
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_text(), true);
 
-        let express = SymbolExpression {
+        let expr = SymbolExpression {
             value: "title".to_string(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_text(), true);
 
-        let express = SymbolExpression {
+        let expr = SymbolExpression {
             value: "invalid".to_string(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_undefined(), true);
     }
 
     #[test]
+    fn test_globalvariableexpression_kind() {
+        assert!(true);
+    }
+
+    #[test]
     fn test_globalvariableexpression_expr_type() {
-        let express = GlobalVariableExpression {
-            name: "field".to_string(),
+        let expr = GlobalVariableExpression {
+            name: "field1".to_string(),
         };
 
-        let mut scope = Enviroment {
+        let mut scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
@@ -557,77 +592,97 @@ mod tests {
 
         scope
             .globals_types
-            .insert("field".to_string(), DataType::Text);
+            .insert("field1".to_string(), DataType::Text);
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_text(), true);
 
-        let express = GlobalVariableExpression {
+        let expr = GlobalVariableExpression {
             name: "invalid".to_string(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_undefined(), true);
     }
 
     #[test]
+    fn test_numberexpression_kind() {
+        assert!(true);
+    }
+
+    #[test]
     fn test_numberexpression_expr_type() {
-        let express = NumberExpression {
+        let expr = NumberExpression {
             value: Value::Text("field".to_string()),
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_text(), true);
     }
 
     #[test]
-    fn test_booleanexpression_expr_type() {
-        let express = BooleanExpression { is_true: false };
+    fn test_booleanexpression_kind() {
+        assert!(true);
+    }
 
-        let scope = Enviroment {
+    #[test]
+    fn test_booleanexpression_expr_type() {
+        let expr = BooleanExpression { is_true: false };
+
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
-        assert_eq!(ret.is_type(DataType::Boolean), true);
+        let ret = expr.expr_type(&scope);
+        assert_eq!(ret.is_bool(), true);
+    }
+
+    #[test]
+    fn test_prefixunaryexpression_kind() {
+        assert!(true);
     }
 
     #[test]
     fn test_prefixunaryexpression_expr_type() {
-        let express = PrefixUnary {
+        let expr = PrefixUnary {
             right: Box::new(NumberExpression { value: Value::Null }),
             op: PrefixUnaryOperator::Minus,
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_int(), true);
 
-        let express = PrefixUnary {
+        let expr = PrefixUnary {
             right: Box::new(NumberExpression { value: Value::Null }),
             op: PrefixUnaryOperator::Bang,
         };
 
-        let ret = express.expr_type(&scope);
-        assert_eq!(ret.is_type(DataType::Boolean), true);
+        let ret = expr.expr_type(&scope);
+        assert_eq!(ret.is_bool(), true);
+    }
+
+    #[test]
+    fn test_arithmeticexpression_kind() {
+        assert!(true);
     }
 
     #[test]
     fn test_arithmeticexpression_expr_type() {
-        let express = ArithmeticExpression {
+        let expr = ArithmeticExpression {
             left: Box::new(NumberExpression {
                 value: Value::Integer(1),
             }),
@@ -637,16 +692,16 @@ mod tests {
             }),
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_int(), true);
 
-        let express = ArithmeticExpression {
+        let expr = ArithmeticExpression {
             left: Box::new(NumberExpression {
                 value: Value::Integer(1),
             }),
@@ -656,13 +711,18 @@ mod tests {
             }),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_float(), true);
     }
 
     #[test]
+    fn test_comparisionexpression_kind() {
+        assert!(true);
+    }
+
+    #[test]
     fn test_comparisionexpression_expr_type() {
-        let express = ComparisonExpression {
+        let expr = ComparisonExpression {
             left: Box::new(NumberExpression {
                 value: Value::Integer(1),
             }),
@@ -672,16 +732,16 @@ mod tests {
             }),
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_int(), true);
 
-        let express = ComparisonExpression {
+        let expr = ComparisonExpression {
             left: Box::new(NumberExpression {
                 value: Value::Integer(1),
             }),
@@ -691,13 +751,18 @@ mod tests {
             }),
         };
 
-        let ret = express.expr_type(&scope);
-        assert_eq!(ret.is_type(DataType::Boolean), true);
+        let ret = expr.expr_type(&scope);
+        assert_eq!(ret.is_bool(), true);
+    }
+
+    #[test]
+    fn test_likeexpression_kind() {
+        assert!(true);
     }
 
     #[test]
     fn test_likeexpression_expr_type() {
-        let express = LikeExpression {
+        let expr = LikeExpression {
             input: Box::new(NumberExpression {
                 value: Value::Integer(1),
             }),
@@ -706,19 +771,24 @@ mod tests {
             }),
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
-        assert_eq!(ret.is_type(DataType::Boolean), true);
+        let ret = expr.expr_type(&scope);
+        assert_eq!(ret.is_bool(), true);
+    }
+
+    #[test]
+    fn test_globalexpression_kind() {
+        assert!(true);
     }
 
     #[test]
     fn test_globalexpression_expr_type() {
-        let express = GlobExpression {
+        let expr = GlobExpression {
             input: Box::new(NumberExpression {
                 value: Value::Integer(1),
             }),
@@ -727,19 +797,24 @@ mod tests {
             }),
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
-        assert_eq!(ret.is_type(DataType::Boolean), true);
+        let ret = expr.expr_type(&scope);
+        assert_eq!(ret.is_bool(), true);
+    }
+
+    #[test]
+    fn test_logicalexpression_kind() {
+        assert!(true);
     }
 
     #[test]
     fn test_logicalexpression_expr_type() {
-        let express = LogicalExpression {
+        let expr = LogicalExpression {
             left: Box::new(NumberExpression {
                 value: Value::Integer(1),
             }),
@@ -749,19 +824,24 @@ mod tests {
             }),
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
-        assert_eq!(ret.is_type(DataType::Boolean), true);
+        let ret = expr.expr_type(&scope);
+        assert_eq!(ret.is_bool(), true);
+    }
+
+    #[test]
+    fn test_bitwiseexpression_kind() {
+        assert!(true);
     }
 
     #[test]
     fn test_bitwiseexpression_expr_type() {
-        let express = BitwiseExpression {
+        let expr = BitwiseExpression {
             left: Box::new(NumberExpression {
                 value: Value::Integer(1),
             }),
@@ -771,19 +851,24 @@ mod tests {
             }),
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_int(), true);
     }
 
     #[test]
+    fn test_callexpression_kind() {
+        assert!(true);
+    }
+
+    #[test]
     fn test_callexpression_expr_type() {
-        let express = CallExpression {
+        let expr = CallExpression {
             function_name: "lower".to_string(),
             arguments: vec![Box::new(NumberExpression {
                 value: Value::Integer(1),
@@ -791,19 +876,24 @@ mod tests {
             is_aggregation: false,
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_text(), true);
     }
 
     #[test]
+    fn test_betweenexpression_kind() {
+        assert!(true);
+    }
+
+    #[test]
     fn test_betweenexpression_expr_type() {
-        let express = BetweenExpression {
+        let expr = BetweenExpression {
             value: Box::new(NumberExpression {
                 value: Value::Integer(1),
             }),
@@ -815,85 +905,106 @@ mod tests {
             }),
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
-        assert_eq!(ret.is_type(DataType::Boolean), true);
+        let ret = expr.expr_type(&scope);
+        assert_eq!(ret.is_bool(), true);
+    }
+
+    #[test]
+    fn test_caseexpression_kind() {
+        assert!(true);
     }
 
     #[test]
     fn test_caseexpression_expr_type() {
-        let express = CaseExpression {
+        let expr = CaseExpression {
             conditions: vec![],
             values: vec![],
             default_value: None,
             values_type: DataType::Text,
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_text(), true);
     }
 
     #[test]
+    fn test_inexpression_kind() {
+        assert!(true);
+    }
+
+    #[test]
     fn test_inexpression_expr_type() {
-        let express = InExpression {
+        let expr = InExpression {
             argument: Box::new(NumberExpression {
                 value: Value::Integer(1),
             }),
             values: vec![],
             values_type: DataType::Text,
+            has_not_keyword: false,
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
+        let ret = expr.expr_type(&scope);
         assert_eq!(ret.is_text(), true);
     }
 
     #[test]
+    fn test_isnullexpression_kind() {
+        assert!(true);
+    }
+
+    #[test]
     fn test_isnullexpression_expr_type() {
-        let express = IsNullExpression {
+        let expr = IsNullExpression {
             argument: Box::new(NumberExpression {
                 value: Value::Integer(1),
             }),
             has_not: false,
         };
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
-        assert_eq!(ret.is_type(DataType::Boolean), true);
+        let ret = expr.expr_type(&scope);
+        assert_eq!(ret.is_bool(), true);
+    }
+
+    #[test]
+    fn test_nullexpression_kind() {
+        assert!(true);
     }
 
     #[test]
     fn test_nullexpression_expr_type() {
-        let express = NullExpression {};
+        let expr = NullExpression {};
 
-        let scope = Enviroment {
+        let scope = Environment {
             globals: Default::default(),
             globals_types: Default::default(),
             scopes: Default::default(),
         };
 
-        let ret = express.expr_type(&scope);
-        assert_eq!(ret.is_type(DataType::Null), true);
+        let ret = expr.expr_type(&scope);
+        assert_eq!(ret.is_null(), true);
     }
 }

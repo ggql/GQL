@@ -133,32 +133,21 @@ fn aggregation_count(_field_name: &str, _titles: &[String], objects: &Group) -> 
 
 #[cfg(test)]
 mod tests {
+    use crate::object::Row;
     use super::*;
 
     #[test]
     fn test_aggregation_max() {
-        let mut obj1: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj1.attributes
-            .insert("field1".to_string(), Value::Integer(1));
+        let titles: Vec<String> = vec!["field1".to_string(), "field2".to_string()];
 
-        let mut obj2: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj2.attributes
-            .insert("field1".to_string(), Value::Integer(2));
+        let values1: Vec<Value> = vec![Value::Integer(1), Value::Integer(2)];
+        let values2: Vec<Value> = vec![Value::Integer(3), Value::Integer(4)];
+        let values3: Vec<Value> = vec![Value::Integer(5), Value::Integer(6)];
+        let rows: Vec<Row> = vec![Row{values: values1}, Row{values: values2}, Row{values: values3}];
+        let objects = Group {rows};
 
-        let mut obj3: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj3.attributes
-            .insert("field1".to_string(), Value::Integer(3));
-
-        let objects = vec![obj1, obj2, obj3];
-
-        if let Value::Integer(v) = aggregation_max("field1", &objects) {
-            assert_eq!(v, 3);
+        if let Value::Integer(v) = aggregation_max("field1", &titles, &objects) {
+            assert_eq!(v, 5);
         } else {
             assert!(false);
         }
@@ -166,27 +155,15 @@ mod tests {
 
     #[test]
     fn test_aggregation_min() {
-        let mut obj1: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj1.attributes
-            .insert("field1".to_string(), Value::Integer(1));
+        let titles: Vec<String> = vec!["field1".to_string(), "field2".to_string()];
 
-        let mut obj2: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj2.attributes
-            .insert("field1".to_string(), Value::Integer(2));
+        let values1: Vec<Value> = vec![Value::Integer(1), Value::Integer(2)];
+        let values2: Vec<Value> = vec![Value::Integer(3), Value::Integer(4)];
+        let values3: Vec<Value> = vec![Value::Integer(5), Value::Integer(6)];
+        let rows: Vec<Row> = vec![Row{values: values1}, Row{values: values2}, Row{values: values3}];
+        let objects = Group {rows};
 
-        let mut obj3: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj3.attributes
-            .insert("field1".to_string(), Value::Integer(3));
-
-        let objects = vec![obj1, obj2, obj3];
-
-        if let Value::Integer(v) = aggregation_min("field1", &objects) {
+        if let Value::Integer(v) = aggregation_min("field1", &titles, &objects) {
             assert_eq!(v, 1);
         } else {
             assert!(false);
@@ -195,28 +172,16 @@ mod tests {
 
     #[test]
     fn test_aggregation_sum() {
-        let mut obj1: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj1.attributes
-            .insert("field1".to_string(), Value::Integer(1));
+        let titles: Vec<String> = vec!["field1".to_string(), "field2".to_string()];
 
-        let mut obj2: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj2.attributes
-            .insert("field1".to_string(), Value::Integer(2));
+        let values1: Vec<Value> = vec![Value::Integer(1), Value::Integer(2)];
+        let values2: Vec<Value> = vec![Value::Integer(3), Value::Integer(4)];
+        let values3: Vec<Value> = vec![Value::Integer(5), Value::Integer(6)];
+        let rows: Vec<Row> = vec![Row{values: values1}, Row{values: values2}, Row{values: values3}];
+        let objects = Group {rows};
 
-        let mut obj3: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj3.attributes
-            .insert("field1".to_string(), Value::Integer(3));
-
-        let objects = vec![obj1, obj2, obj3];
-
-        if let Value::Integer(v) = aggregation_sum("field1", &objects) {
-            assert_eq!(v, 6);
+        if let Value::Integer(v) = aggregation_sum("field1", &titles, &objects) {
+            assert_eq!(v, 9);
         } else {
             assert!(false);
         }
@@ -224,28 +189,16 @@ mod tests {
 
     #[test]
     fn test_aggregation_average() {
-        let mut obj1: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj1.attributes
-            .insert("field1".to_string(), Value::Integer(1));
+        let titles: Vec<String> = vec!["field1".to_string(), "field2".to_string()];
 
-        let mut obj2: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj2.attributes
-            .insert("field1".to_string(), Value::Integer(2));
+        let values1: Vec<Value> = vec![Value::Integer(1), Value::Integer(2)];
+        let values2: Vec<Value> = vec![Value::Integer(3), Value::Integer(4)];
+        let values3: Vec<Value> = vec![Value::Integer(5), Value::Integer(6)];
+        let rows: Vec<Row> = vec![Row{values: values1}, Row{values: values2}, Row{values: values3}];
+        let objects = Group {rows};
 
-        let mut obj3: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj3.attributes
-            .insert("field1".to_string(), Value::Integer(3));
-
-        let objects = vec![obj1, obj2, obj3];
-
-        if let Value::Integer(v) = aggregation_average("field1", &objects) {
-            assert_eq!(v, 2);
+        if let Value::Integer(v) = aggregation_average("field1", &titles, &objects) {
+            assert_eq!(v, 3);
         } else {
             assert!(false);
         }
@@ -253,27 +206,15 @@ mod tests {
 
     #[test]
     fn test_aggregation_ccount() {
-        let mut obj1: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj1.attributes
-            .insert("field1".to_string(), Value::Integer(1));
+        let titles: Vec<String> = vec!["field1".to_string(), "field2".to_string()];
 
-        let mut obj2: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj2.attributes
-            .insert("field1".to_string(), Value::Integer(2));
+        let values1: Vec<Value> = vec![Value::Integer(1), Value::Integer(2)];
+        let values2: Vec<Value> = vec![Value::Integer(3), Value::Integer(4)];
+        let values3: Vec<Value> = vec![Value::Integer(5), Value::Integer(6)];
+        let rows: Vec<Row> = vec![Row{values: values1}, Row{values: values2}, Row{values: values3}];
+        let objects = Group {rows};
 
-        let mut obj3: GQLObject = GQLObject {
-            attributes: HashMap::new(),
-        };
-        obj3.attributes
-            .insert("field1".to_string(), Value::Integer(3));
-
-        let objects = vec![obj1, obj2, obj3];
-
-        if let Value::Integer(v) = aggregation_count("field1", &objects) {
+        if let Value::Integer(v) = aggregation_count("field1", &titles, &objects) {
             assert_eq!(v, 3);
         } else {
             assert!(false);
