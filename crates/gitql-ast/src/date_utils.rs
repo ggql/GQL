@@ -261,6 +261,13 @@ mod tests {
     }
 
     #[test]
+    fn test_date_to_day_number_in_month() {
+        let ret = date_to_day_number_in_month(1705117592);
+        println!("date_to_day_number_in_month: {}", ret);
+        assert_ne!(ret, 0);
+    }
+
+    #[test]
     fn test_date_to_day_name() {
         let ret = date_to_day_name(1705117592);
         println!("date_to_day_name: {}", ret);

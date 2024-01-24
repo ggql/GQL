@@ -1349,6 +1349,21 @@ mod tests {
     }
 
     #[test]
+    fn test_text_concat_ws() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Text(" ".to_string()));
+        buf.push(Value::Text("hello".to_string()));
+        buf.push(Value::Text("world".to_string()));
+        if let Value::Text(v) = text_concat_ws(&buf) {
+            assert_eq!(v, "hello world");
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
     fn test_text_strcmp() {
         let mut buf: Vec<Value> = Vec::new();
 
@@ -1435,6 +1450,20 @@ mod tests {
         if let Value::Time(v) = date_make_time(&buf) {
             println!("date_make_time: {}", v);
             assert_ne!(v, "".to_string());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_date_day() {
+        let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Date(1705117592));
+        if let Value::Integer(v) = date_day(&buf) {
+            println!("date_day: {}", v);
+            assert_ne!(v, 0);
         } else {
             assert!(false);
         }
@@ -1703,6 +1732,30 @@ mod tests {
     #[test]
     fn test_numeric_sign() {
         let mut buf: Vec<Value> = Vec::new();
+
+        buf.clear();
+        buf.push(Value::Integer(0));
+        if let Value::Integer(v) = numeric_sign(&buf) {
+            assert_eq!(v, 0);
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Integer(1));
+        if let Value::Integer(v) = numeric_sign(&buf) {
+            assert_eq!(v, 1);
+        } else {
+            assert!(false);
+        }
+
+        buf.clear();
+        buf.push(Value::Integer(-1));
+        if let Value::Integer(v) = numeric_sign(&buf) {
+            assert_eq!(v, -1);
+        } else {
+            assert!(false);
+        }
 
         buf.clear();
         buf.push(Value::Float(0f64));

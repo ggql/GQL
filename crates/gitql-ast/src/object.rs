@@ -160,4 +160,76 @@ mod tests {
         let ret = object.len();
         assert_eq!(ret, 1);
     }
+
+    #[test]
+    fn test_gitqlobject_as_json() {
+        let object = GitQLObject{
+            titles: vec!["title1".to_string(), "title2".to_string()],
+            groups: vec![
+                Group{
+                    rows: vec![
+                        Row{
+                            values: vec![
+                                Value::Integer(1),
+                                Value::Integer(1)
+                            ]
+                        }
+                    ]
+                },
+                Group{
+                    rows: vec![
+                        Row{
+                            values: vec![
+                                Value::Text("hello".to_string()),
+                                Value::Text("hello".to_string())
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        if let Ok(ret) = object.as_json() {
+            println!("{}", ret);
+            assert!(true);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_gitqlobject_as_csv() {
+        let object = GitQLObject{
+            titles: vec!["title1".to_string(), "title2".to_string()],
+            groups: vec![
+                Group{
+                    rows: vec![
+                        Row{
+                            values: vec![
+                                Value::Integer(1),
+                                Value::Integer(1)
+                            ]
+                        }
+                    ]
+                },
+                Group{
+                    rows: vec![
+                        Row{
+                            values: vec![
+                                Value::Text("hello".to_string()),
+                                Value::Text("hello".to_string())
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        if let Ok(ret) = object.as_csv() {
+            println!("{}", ret);
+            assert!(true);
+        } else {
+            assert!(false);
+        }
+    }
 }

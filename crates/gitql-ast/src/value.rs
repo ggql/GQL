@@ -468,56 +468,86 @@ mod tests {
     fn test_value_plus() {
         let value = Value::Integer(1);
         let other = Value::Null;
-        let ret = value.plus(&other);
-        assert_eq!(ret.as_int(), 0);
+        if let Ok(ret) = value.plus(&other) {
+            assert_eq!(ret.as_int(), 0);
+        } else {
+            assert!(false);
+        }
 
         let value = Value::Integer(1);
         let other = Value::Integer(1);
-        let ret = value.plus(&other);
-        assert_eq!(ret.as_int(), 2);
+        if let Ok(ret) = value.plus(&other) {
+            assert_eq!(ret.as_int(), 2);
+        } else {
+            assert!(false);
+        }
 
         let value = Value::Float(1.0);
         let other = Value::Float(1.0);
-        let ret = value.plus(&other);
-        assert_eq!(ret.as_float(), 2.0);
+        if let Ok(ret) = value.plus(&other) {
+            assert_eq!(ret.as_float(), 2.0);
+        } else {
+            assert!(false);
+        }
 
         let value = Value::Integer(1);
         let other = Value::Float(1.0);
-        let ret = value.plus(&other);
-        assert_eq!(ret.as_float(), 2.0);
+        if let Ok(ret) = value.plus(&other) {
+            assert_eq!(ret.as_float(), 2.0);
+        } else {
+            assert!(false);
+        }
 
         let value = Value::Float(1.0);
         let other = Value::Integer(1);
-        let ret = value.plus(&other);
-        assert_eq!(ret.as_float(), 2.0);
+        if let Ok(ret) = value.plus(&other) {
+            assert_eq!(ret.as_float(), 2.0);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_value_minus() {
         let value = Value::Integer(1);
         let other = Value::Null;
-        let ret = value.minus(&other);
-        assert_eq!(ret.as_int(), 0);
+        if let Ok(ret) = value.minus(&other) {
+            assert_eq!(ret.as_int(), 0);
+        } else {
+            assert!(false);
+        }
 
         let value = Value::Integer(1);
         let other = Value::Integer(1);
-        let ret = value.minus(&other);
-        assert_eq!(ret.as_int(), 0);
+        if let Ok(ret) = value.minus(&other) {
+            assert_eq!(ret.as_int(), 0);
+        } else {
+            assert!(false);
+        }
 
         let value = Value::Float(1.0);
         let other = Value::Float(1.0);
-        let ret = value.minus(&other);
-        assert_eq!(ret.as_float(), 0.0);
+        if let Ok(ret) = value.minus(&other) {
+            assert_eq!(ret.as_float(), 0.0);
+        } else {
+            assert!(false);
+        }
 
         let value = Value::Integer(2);
         let other = Value::Float(1.0);
-        let ret = value.minus(&other);
-        assert_eq!(ret.as_float(), 1.0);
+        if let Ok(ret) = value.minus(&other) {
+            assert_eq!(ret.as_float(), 1.0);
+        } else {
+            assert!(false);
+        }
 
         let value = Value::Float(1.0);
         let other = Value::Integer(1);
-        let ret = value.minus(&other);
-        assert_eq!(ret.as_float(), 0.0);
+        if let Ok(ret) = value.minus(&other) {
+            assert_eq!(ret.as_float(), 0.0);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
