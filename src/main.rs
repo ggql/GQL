@@ -3,6 +3,7 @@ use gitql_ast::environment::Environment;
 use gitql_cli::arguments;
 use gitql_cli::arguments::Arguments;
 use gitql_cli::arguments::Command;
+use gitql_cli::arguments::OutputFormat;
 use gitql_cli::diagnostic_reporter;
 use gitql_cli::diagnostic_reporter::DiagnosticReporter;
 use gitql_cli::render;
@@ -150,12 +151,64 @@ fn execute_gitql_query(
     // Render the result only if they are selected groups not any other statement
     let engine_result = evaluation_result.ok().unwrap();
     if let SelectedGroups(mut groups, hidden_selection) = engine_result {
-        render::render_objects(
-            &mut groups,
-            &hidden_selection,
-            arguments.pagination,
-            arguments.page_size,
-        );
+        match arguments.output_format {
+            OutputFormat::Render => {
+                render::render_objects(
+                    &mut groups,
+                    &hidden_selection,
+                    arguments.pagination,
+                    arguments.page_size,
+                );
+            }
+            OutputFormat::JSON => {
+                let mut indexes = vec![];
+                for (index, title) in groups.titles.iter().enumerate() {
+                    if hidden_selection.contains(title) {
+                        indexes.insert(0, index);
+                    }
+                }
+
+                if groups.len() > 1 {
+                    groups.flat()
+                }
+
+                for index in indexes {
+                    groups.titles.remove(index);
+
+                    for row in &mut groups.groups[0].rows {
+                        row.values.remove(index);
+                    }
+                }
+
+                if let Ok(json) = groups.as_json() {
+                    println!("{}", json);
+                }
+            }
+            OutputFormat::CSV => {
+                let mut indexes = vec![];
+                for (index, title) in groups.titles.iter().enumerate() {
+                    if hidden_selection.contains(title) {
+                        indexes.insert(0, index);
+                    }
+                }
+
+                if groups.len() > 1 {
+                    groups.flat()
+                }
+
+                for index in indexes {
+                    groups.titles.remove(index);
+
+                    for row in &mut groups.groups[0].rows {
+                        row.values.remove(index);
+                    }
+                }
+
+                if let Ok(csv) = groups.as_csv() {
+                    println!("{}", csv);
+                }
+            }
+        }
     }
 
     let engine_duration = engine_start.elapsed();

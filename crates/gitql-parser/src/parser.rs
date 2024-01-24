@@ -980,8 +980,8 @@ fn parse_logical_or_expression(
         return expression;
     }
 
-    let lhs = expression.ok().unwrap();
-    if tokens[*position].kind == TokenKind::LogicalOr {
+    let mut lhs = expression.ok().unwrap();
+    while *position < tokens.len() && tokens[*position].kind == TokenKind::LogicalOr {
         *position += 1;
 
         if lhs.expr_type(env) != DataType::Boolean {
@@ -1003,11 +1003,11 @@ fn parse_logical_or_expression(
             .as_boxed());
         }
 
-        return Ok(Box::new(LogicalExpression {
+        lhs = Box::new(LogicalExpression {
             left: lhs,
             operator: LogicalOperator::Or,
             right: rhs,
-        }));
+        });
     }
 
     Ok(lhs)
@@ -1024,8 +1024,8 @@ fn parse_logical_and_expression(
         return expression;
     }
 
-    let lhs = expression.ok().unwrap();
-    if tokens[*position].kind == TokenKind::LogicalAnd {
+    let mut lhs = expression.ok().unwrap();
+    while *position < tokens.len() && tokens[*position].kind == TokenKind::LogicalAnd {
         *position += 1;
 
         if lhs.expr_type(env) != DataType::Boolean {
@@ -1047,11 +1047,11 @@ fn parse_logical_and_expression(
             .as_boxed());
         }
 
-        return Ok(Box::new(LogicalExpression {
+        lhs = Box::new(LogicalExpression {
             left: lhs,
             operator: LogicalOperator::And,
             right: rhs,
-        }));
+        });
     }
 
     Ok(lhs)
@@ -1112,8 +1112,8 @@ fn parse_logical_xor_expression(
         return expression;
     }
 
-    let lhs = expression.ok().unwrap();
-    if tokens[*position].kind == TokenKind::LogicalXor {
+    let mut lhs = expression.ok().unwrap();
+    while *position < tokens.len() && tokens[*position].kind == TokenKind::LogicalXor {
         *position += 1;
 
         if lhs.expr_type(env) != DataType::Boolean {
@@ -1133,11 +1133,11 @@ fn parse_logical_xor_expression(
             ));
         }
 
-        return Ok(Box::new(LogicalExpression {
+        lhs = Box::new(LogicalExpression {
             left: lhs,
             operator: LogicalOperator::Xor,
             right: rhs,
-        }));
+        });
     }
 
     Ok(lhs)
@@ -1154,8 +1154,8 @@ fn parse_bitwise_and_expression(
         return expression;
     }
 
-    let lhs = expression.ok().unwrap();
-    if tokens[*position].kind == TokenKind::BitwiseAnd {
+    let mut lhs = expression.ok().unwrap();
+    if *position < tokens.len() && tokens[*position].kind == TokenKind::BitwiseAnd {
         *position += 1;
 
         if lhs.expr_type(env) != DataType::Boolean {
@@ -1175,11 +1175,11 @@ fn parse_bitwise_and_expression(
             ));
         }
 
-        return Ok(Box::new(BitwiseExpression {
+        lhs = Box::new(BitwiseExpression {
             left: lhs,
             operator: BitwiseOperator::And,
             right: rhs,
-        }));
+        });
     }
 
     Ok(lhs)
@@ -1743,29 +1743,51 @@ fn parse_primary_expression(
             }))
         }
         TokenKind::Symbol => {
+            let value = tokens[*position].literal.to_string();
             *position += 1;
-            let value = tokens[*position - 1].literal.to_string();
             if !context.selected_fields.contains(&value) {
                 context.hidden_selections.push(value.to_string());
             }
             Ok(Box::new(SymbolExpression { value }))
         }
         TokenKind::GlobalVariable => {
+            let name = tokens[*position].literal.to_string();
             *position += 1;
-            let name = tokens[*position - 1].literal.to_string();
             Ok(Box::new(GlobalVariableExpression { name }))
         }
         TokenKind::Integer => {
-            *position += 1;
-            let integer = tokens[*position - 1].literal.parse::<i64>().unwrap();
-            let value = Value::Integer(integer);
-            Ok(Box::new(NumberExpression { value }))
+            if let Ok(integer) = tokens[*position].literal.parse::<i64>() {
+                *position += 1;
+                let value = Value::Integer(integer);
+                return Ok(Box::new(NumberExpression { value }));
+            }
+
+            Err(Diagnostic::error("Too big Integer value")
+                .add_help("Try to use smaller value")
+                .add_note(&format!(
+                    "Integer value must be between {} and {}",
+                    i64::MIN,
+                    i64::MAX
+                ))
+                .with_location(tokens[*position].location)
+                .as_boxed())
         }
         TokenKind::Float => {
-            *position += 1;
-            let float = tokens[*position - 1].literal.parse::<f64>().unwrap();
-            let value = Value::Float(float);
-            Ok(Box::new(NumberExpression { value }))
+            if let Ok(float) = tokens[*position].literal.parse::<f64>() {
+                *position += 1;
+                let value = Value::Float(float);
+                return Ok(Box::new(NumberExpression { value }));
+            }
+
+            Err(Diagnostic::error("Too big Float value")
+                .add_help("Try to use smaller value")
+                .add_note(&format!(
+                    "Float value must be between {} and {}",
+                    f64::MIN,
+                    f64::MAX
+                ))
+                .with_location(tokens[*position].location)
+                .as_boxed())
         }
         TokenKind::True => {
             *position += 1;
@@ -1824,7 +1846,7 @@ fn parse_case_expression(
         if tokens[*position].kind == TokenKind::Else {
             if has_else_branch {
                 return Err(
-                    Diagnostic::error("This case expression already has else branch")
+                    Diagnostic::error("This `CASE` expression already has else branch")
                         .add_note("`CASE` expression can has only one `ELSE` branch")
                         .with_location(get_safe_location(tokens, *position))
                         .as_boxed(),
@@ -2003,6 +2025,7 @@ fn check_function_call_arguments(
         let parameter_type = parameters.get(index).unwrap();
         let argument = arguments.get(index).unwrap();
         match is_expression_type_equals(env, argument, parameter_type) {
+            TypeCheckResult::Equals => {}
             TypeCheckResult::RightSideCasted(new_expr) => {
                 arguments[index] = new_expr;
             }
@@ -2017,7 +2040,7 @@ fn check_function_call_arguments(
                 ))
                 .with_location(location).as_boxed());
             }
-            _ => {}
+            TypeCheckResult::Error(error) => return Err(error),
         }
     }
 
@@ -2028,6 +2051,7 @@ fn check_function_call_arguments(
         for index in last_required_parameter_index..arguments_len {
             let argument = arguments.get(index).unwrap();
             match is_expression_type_equals(env, argument, last_parameter_type) {
+                TypeCheckResult::Equals => {}
                 TypeCheckResult::RightSideCasted(new_expr) => {
                     arguments[index] = new_expr;
                 }
@@ -2044,7 +2068,7 @@ fn check_function_call_arguments(
                         .with_location(location).as_boxed());
                     }
                 }
-                _ => {}
+                TypeCheckResult::Error(error) => return Err(error),
             }
         }
     }
@@ -2121,6 +2145,7 @@ fn un_expected_expression_error(tokens: &Vec<Token>, position: &usize) -> Box<Di
     // Similar to SQL just `=` is used for equality comparisons
     if previous.kind == TokenKind::Equal && current.kind == TokenKind::Equal {
         return Diagnostic::error("Unexpected `==`, Just use `=` to check equality")
+            .add_help("Try to remove the extra `=`")
             .with_location(location)
             .as_boxed();
     }
@@ -2128,6 +2153,7 @@ fn un_expected_expression_error(tokens: &Vec<Token>, position: &usize) -> Box<Di
     // `< =` the user may mean to write `<=`
     if previous.kind == TokenKind::Greater && current.kind == TokenKind::Equal {
         return Diagnostic::error("Unexpected `> =`, do you mean `>=`?")
+            .add_help("Try to remove space between `> =`")
             .with_location(location)
             .as_boxed();
     }
@@ -2135,6 +2161,7 @@ fn un_expected_expression_error(tokens: &Vec<Token>, position: &usize) -> Box<Di
     // `> =` the user may mean to write `>=`
     if previous.kind == TokenKind::Less && current.kind == TokenKind::Equal {
         return Diagnostic::error("Unexpected `< =`, do you mean `<=`?")
+            .add_help("Try to remove space between `< =`")
             .with_location(location)
             .as_boxed();
     }
@@ -2142,6 +2169,7 @@ fn un_expected_expression_error(tokens: &Vec<Token>, position: &usize) -> Box<Di
     // `> >` the user may mean to write '>>'
     if previous.kind == TokenKind::Greater && current.kind == TokenKind::Greater {
         return Diagnostic::error("Unexpected `> >`, do you mean `>>`?")
+            .add_help("Try to remove space between `> >`")
             .with_location(location)
             .as_boxed();
     }
@@ -2149,6 +2177,7 @@ fn un_expected_expression_error(tokens: &Vec<Token>, position: &usize) -> Box<Di
     // `< <` the user may mean to write `<<`
     if previous.kind == TokenKind::Less && current.kind == TokenKind::Less {
         return Diagnostic::error("Unexpected `< <`, do you mean `<<`?")
+            .add_help("Try to remove space between `< <`")
             .with_location(location)
             .as_boxed();
     }
@@ -2156,6 +2185,7 @@ fn un_expected_expression_error(tokens: &Vec<Token>, position: &usize) -> Box<Di
     // `< >` the user may mean to write `<>`
     if previous.kind == TokenKind::Less && current.kind == TokenKind::Greater {
         return Diagnostic::error("Unexpected `< >`, do you mean `<>`?")
+            .add_help("Try to remove space between `< >`")
             .with_location(location)
             .as_boxed();
     }

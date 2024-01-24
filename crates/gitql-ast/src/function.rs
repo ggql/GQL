@@ -39,6 +39,7 @@ lazy_static! {
         map.insert("translate", text_translate);
         map.insert("soundex", text_soundex);
         map.insert("concat", text_concat);
+        map.insert("concat_ws", text_concat_ws);
         map.insert("unicode", text_unicode);
         map.insert("strcmp", text_strcmp);
 
@@ -49,6 +50,7 @@ lazy_static! {
         map.insert("now", date_current_timestamp);
         map.insert("makedate", date_make_date);
         map.insert("maketime", date_make_time);
+        map.insert("day", date_day);
         map.insert("dayname", date_dayname);
         map.insert("monthname", date_monthname);
         map.insert("hour", date_hour);
@@ -238,6 +240,13 @@ lazy_static! {
              },
         );
         map.insert(
+            "concat_ws",
+            Prototype {
+                parameters: vec![DataType::Text, DataType::Any, DataType::Any, DataType::Varargs(Box::new(DataType::Any))],
+                result: DataType::Text
+             },
+        );
+        map.insert(
             "unicode",
             Prototype {
                 parameters: vec![DataType::Text],
@@ -294,6 +303,13 @@ lazy_static! {
             Prototype {
                 parameters: vec![DataType::Date],
                 result: DataType::Text,
+            }
+        );
+        map.insert(
+            "day",
+            Prototype {
+                parameters: vec![DataType::Date],
+                result: DataType::Integer,
             }
         );
         map.insert(
@@ -405,7 +421,7 @@ lazy_static! {
         map.insert(
             "sign",
             Prototype {
-                parameters: vec![DataType::Float],
+                parameters: vec![DataType::Variant(vec![DataType::Integer, DataType::Float])],
                 result: DataType::Integer,
             },
         );
@@ -681,6 +697,12 @@ fn text_concat(inputs: &[Value]) -> Value {
     Value::Text(text.concat())
 }
 
+fn text_concat_ws(inputs: &[Value]) -> Value {
+    let separator = inputs[0].as_text();
+    let text: Vec<String> = inputs.iter().skip(1).map(|v| v.to_string()).collect();
+    Value::Text(text.join(&separator))
+}
+
 fn text_strcmp(inputs: &[Value]) -> Value {
     Value::Integer(match inputs[0].as_text().cmp(&inputs[1].as_text()) {
         std::cmp::Ordering::Less => 1,
@@ -719,6 +741,11 @@ fn date_make_time(inputs: &[Value]) -> Value {
     let minute = inputs[1].as_int();
     let second = inputs[2].as_int();
     Value::Time(format!("{}:{:02}:{:02}", hour, minute, second))
+}
+
+fn date_day(inputs: &[Value]) -> Value {
+    let date = inputs[0].as_date();
+    Value::Integer(date_utils::date_to_day_number_in_month(date).into())
 }
 
 fn date_dayname(inputs: &[Value]) -> Value {
@@ -807,7 +834,13 @@ fn numeric_atn2(inputs: &[Value]) -> Value {
 }
 
 fn numeric_sign(inputs: &[Value]) -> Value {
-    let float_value = inputs[0].as_float();
+    let value = &inputs[0];
+    if value.data_type().is_int() {
+        let int_value = value.as_int();
+        return Value::Integer(int_value.signum());
+    }
+
+    let float_value = value.as_float();
     if float_value == 0.0 {
         Value::Integer(0)
     } else if float_value > 0.0 {

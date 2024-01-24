@@ -27,6 +27,7 @@ note that all functions names are case-insensitive.
 | TRANSLATE  | Text, Text, Text,            | Text    | Returns the string from the first argument after the characters specified in the second argument are translated into the characters specified in the third argument. |
 | SOUNDEX    | Text                         | Text    | Returns a four-character code to evaluate the similarity of two expressions.                                                                                         |
 | CONCAT     | Any, Any, ...Any             | Text    | Add several string representations of values together together.                                                                                                      |
+| CONCAT_WS  | Text, Any, Any, ...Any       | Text    | Add several string representations of values together together with separate.                                                                                        |
 | UNICODE    | Text                         | Integer | Return an integer value (the Unicode value), for the first character of the input expression.                                                                        |
 | STRCMP     | Text , Text                  | Integer | Return 0 If string1 = string2, -1 if string1 < string2, this function returns -1, and 1 if string1 > string2                                                         |
 
@@ -51,6 +52,7 @@ SELECT RIGHT("AmrDeveloper", 3) AS extract
 SELECT TRANSLATE("Amr[Dev]{eloper}", "[]{}", "()()")
 SELECT SOUNDEX("AmrDeveloper") as code
 SELECT CONCAT("amrdeveloper", ".github.io")
+SELECT CONCAT_WS("_", "Git", "Query", "Language"); 
 SELECT UNICODE("AmrDeveloper")
 ```
 
@@ -64,6 +66,7 @@ SELECT UNICODE("AmrDeveloper")
 | MAKEDATE          | Integer, Integer          | Date     | Create and return a date based on a year and a number of days.             |
 | MAKETIME          | Integer, Integer, Integer | Time     | Create and return a time value based on an hour, minute, and second value. |
 | NOW               |                           | DateTime | Return current date time in `YYYY-MM-DD HH:MM:SS` format.                  |
+| Day               | Date                      | Integer  | Returns the index of the day (1 to 31) in the date.                        |
 | DAYNAME           | Date                      | Text     | Returns the name of the day given a timestamp.                             |
 | MONTHNAME         | Date                      | Text     | Returns the name of the month given a timestamp.                           |
 | HOUR              | DateTime                  | Integer  | Returns the hour part of a datetime.                                       |
@@ -85,21 +88,21 @@ SELECT HOUR(NOW())
 
 ### Numeric Functions
 
-| Name   | Parameters   | Return  | Description                                                                  |
-| ------ | ------------ | ------- | ---------------------------------------------------------------------------- |
-| PI     |              | Float   | Return the value of PI.                                                      |
-| FLOOR  | Float        | Integer | Returns the largest integer value that is smaller than or equal to a number. |
-| ROUND  | Float        | Integer | Returns the nearest integer value.                                           |
-| SQUARE | Integer      | Integer | Returns the square of an integer value.                                      |
-| ABS    | Integer      | Integer | Returns the absolute value of an integer value.                              |
-| SIN    | Float        | Float   | Returns the sine of a number.                                                |
-| ASIN   | Float        | Float   | Returns the arc sine of a number.                                            |
-| COS    | FLOAT        | FLOAT   | Returns the cosine of a number.                                              |
-| ACOS   | FLOAT        | FLOAT   | Returns the arc cosine of a number.                                          |
-| TAN    | FLOAT        | FLOAT   | Returns the tangent of a number.                                             |
-| ATAN   | FLOAT        | FLOAT   | Returns the arc tangent of a number.                                         |
-| ATN2   | FLOAT, FLOAT | FLOAT   | Returns the arc tangent of two values.                                       |
-| SIGN   | FLOAT        | Integer | Returns the sign of a number.                                                |
+| Name   | Parameters       | Return  | Description                                                                  |
+| ------ | ---------------- | ------- | ---------------------------------------------------------------------------- |
+| PI     |                  | Float   | Return the value of PI.                                                      |
+| FLOOR  | Float            | Integer | Returns the largest integer value that is smaller than or equal to a number. |
+| ROUND  | Float            | Integer | Returns the nearest integer value.                                           |
+| SQUARE | Integer          | Integer | Returns the square of an integer value.                                      |
+| ABS    | Integer          | Integer | Returns the absolute value of an integer value.                              |
+| SIN    | Float            | Float   | Returns the sine of a number.                                                |
+| ASIN   | Float            | Float   | Returns the arc sine of a number.                                            |
+| COS    | FLOAT            | FLOAT   | Returns the cosine of a number.                                              |
+| ACOS   | FLOAT            | FLOAT   | Returns the arc cosine of a number.                                          |
+| TAN    | FLOAT            | FLOAT   | Returns the tangent of a number.                                             |
+| ATAN   | FLOAT            | FLOAT   | Returns the arc tangent of a number.                                         |
+| ATN2   | FLOAT, FLOAT     | FLOAT   | Returns the arc tangent of two values.                                       |
+| SIGN   | Integer or FLOAT | Integer | Returns the sign of a number.                                                |
 
 ### Numeric functions samples
 
@@ -110,6 +113,7 @@ SELECT ROUND(1.5)
 SELECT SQUARE(64)
 SELECT ABS(-1)
 SELECT SIN(2.0)
+SELECT SIN(2)
 SELECT ATN2(0.50, 1.0)
 ```
 
