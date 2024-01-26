@@ -103,10 +103,10 @@ mod tests {
 
     #[test]
     fn test_define_global() {
-        let mut env = Environment{
-            globals: Default::default (),
-            globals_types: Default::default (),
-            scopes: Default::default (),
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
         };
 
         env.define_global("field1".to_string(), DataType::Text);
@@ -115,14 +115,14 @@ mod tests {
         } else {
             assert!(false);
         }
-}
+    }
 
     #[test]
     fn test_contains() {
-        let mut env = Environment{
-            globals: Default::default (),
-            globals_types: Default::default (),
-            scopes: Default::default (),
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
         };
 
         env.define("field1".to_string(), DataType::Text);
@@ -140,10 +140,10 @@ mod tests {
 
     #[test]
     fn test_resolve_type() {
-        let mut env = Environment{
-            globals: Default::default (),
-            globals_types: Default::default (),
-            scopes: Default::default (),
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
         };
 
         env.define("field1".to_string(), DataType::Text);
@@ -178,10 +178,10 @@ mod tests {
 
     #[test]
     fn test_clear_session() {
-        let mut env = Environment{
-            globals: Default::default (),
-            globals_types: Default::default (),
-            scopes: Default::default (),
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
         };
 
         env.define("field1".to_string(), DataType::Text);

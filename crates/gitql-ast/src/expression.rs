@@ -501,8 +501,13 @@ mod tests {
 
     #[test]
     fn test_assignmentexpression_expr_type() {
-        let expr = AssignmentExpression{ symbol: "".to_string(),
-            value: Box::new(StringExpression{ value: "".to_string(), value_type: StringValueType::Text }) };
+        let expr = AssignmentExpression {
+            symbol: "".to_string(),
+            value: Box::new(StringExpression {
+                value: "".to_string(),
+                value_type: StringValueType::Text,
+            }),
+        };
 
         let scope = Environment {
             globals: Default::default(),

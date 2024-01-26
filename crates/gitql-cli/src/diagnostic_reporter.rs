@@ -50,3 +50,18 @@ impl DiagnosticReporter {
         self.stdout.reset();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_report_diagnostic() {
+        let mut reporter = DiagnosticReporter {
+            stdout: Default::default(),
+        };
+
+        reporter.report_diagnostic("keyword", Diagnostic::error("error"));
+        assert!(true);
+    }
+}

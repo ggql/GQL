@@ -101,7 +101,7 @@ mod tests {
 
     #[test]
     fn test_group_is_empty() {
-        let group = Group{ rows: vec![] };
+        let group = Group { rows: vec![] };
 
         let ret = group.is_empty();
         assert_eq!(ret, true)
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_group_len() {
-        let group = Group{ rows: vec![] };
+        let group = Group { rows: vec![] };
 
         let ret = group.len();
         assert_eq!(ret, 0)
@@ -117,8 +117,13 @@ mod tests {
 
     #[test]
     fn test_gitqlobject_flat() {
-        let groups = vec![Group{ rows: vec![Row{ values: vec![] }] }];
-        let mut object = GitQLObject{ titles: vec![], groups };
+        let groups = vec![Group {
+            rows: vec![Row { values: vec![] }],
+        }];
+        let mut object = GitQLObject {
+            titles: vec![],
+            groups,
+        };
 
         object.flat();
         assert_eq!(object.groups.len(), 1);
@@ -128,8 +133,12 @@ mod tests {
         }
 
         object.groups.clear();
-        object.groups.push(Group{ rows: vec![Row{ values: vec![] }] });
-        object.groups.push(Group{ rows: vec![Row{ values: vec![] }] });
+        object.groups.push(Group {
+            rows: vec![Row { values: vec![] }],
+        });
+        object.groups.push(Group {
+            rows: vec![Row { values: vec![] }],
+        });
         assert_eq!(object.groups.len(), 2);
 
         object.flat();
@@ -142,7 +151,10 @@ mod tests {
 
     #[test]
     fn test_gitqlobject_is_empty() {
-        let object = GitQLObject{ titles: vec![], groups: vec![]};
+        let object = GitQLObject {
+            titles: vec![],
+            groups: vec![],
+        };
 
         let ret = object.is_empty();
         assert_eq!(ret, true);
@@ -150,12 +162,15 @@ mod tests {
 
     #[test]
     fn test_gitqlobject_len() {
-        let mut object = GitQLObject{ titles: vec![], groups: vec![]};
+        let mut object = GitQLObject {
+            titles: vec![],
+            groups: vec![],
+        };
 
         let ret = object.len();
         assert_eq!(ret, 0);
 
-        object.groups.push(Group{ rows: vec![] });
+        object.groups.push(Group { rows: vec![] });
 
         let ret = object.len();
         assert_eq!(ret, 1);
@@ -163,30 +178,23 @@ mod tests {
 
     #[test]
     fn test_gitqlobject_as_json() {
-        let object = GitQLObject{
+        let object = GitQLObject {
             titles: vec!["title1".to_string(), "title2".to_string()],
             groups: vec![
-                Group{
-                    rows: vec![
-                        Row{
-                            values: vec![
-                                Value::Integer(1),
-                                Value::Integer(1)
-                            ]
-                        }
-                    ]
+                Group {
+                    rows: vec![Row {
+                        values: vec![Value::Integer(1), Value::Integer(1)],
+                    }],
                 },
-                Group{
-                    rows: vec![
-                        Row{
-                            values: vec![
-                                Value::Text("hello".to_string()),
-                                Value::Text("hello".to_string())
-                            ]
-                        }
-                    ]
-                }
-            ]
+                Group {
+                    rows: vec![Row {
+                        values: vec![
+                            Value::Text("hello".to_string()),
+                            Value::Text("world".to_string()),
+                        ],
+                    }],
+                },
+            ],
         };
 
         if let Ok(ret) = object.as_json() {
@@ -199,30 +207,23 @@ mod tests {
 
     #[test]
     fn test_gitqlobject_as_csv() {
-        let object = GitQLObject{
+        let object = GitQLObject {
             titles: vec!["title1".to_string(), "title2".to_string()],
             groups: vec![
-                Group{
-                    rows: vec![
-                        Row{
-                            values: vec![
-                                Value::Integer(1),
-                                Value::Integer(1)
-                            ]
-                        }
-                    ]
+                Group {
+                    rows: vec![Row {
+                        values: vec![Value::Integer(1), Value::Integer(1)],
+                    }],
                 },
-                Group{
-                    rows: vec![
-                        Row{
-                            values: vec![
-                                Value::Text("hello".to_string()),
-                                Value::Text("hello".to_string())
-                            ]
-                        }
-                    ]
-                }
-            ]
+                Group {
+                    rows: vec![Row {
+                        values: vec![
+                            Value::Text("hello".to_string()),
+                            Value::Text("hello".to_string()),
+                        ],
+                    }],
+                },
+            ],
         };
 
         if let Ok(ret) = object.as_csv() {

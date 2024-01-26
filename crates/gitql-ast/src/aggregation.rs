@@ -133,8 +133,8 @@ fn aggregation_count(_field_name: &str, _titles: &[String], objects: &Group) -> 
 
 #[cfg(test)]
 mod tests {
-    use crate::object::Row;
     use super::*;
+    use crate::object::Row;
 
     #[test]
     fn test_aggregation_max() {
@@ -143,8 +143,12 @@ mod tests {
         let values1: Vec<Value> = vec![Value::Integer(1), Value::Integer(2)];
         let values2: Vec<Value> = vec![Value::Integer(3), Value::Integer(4)];
         let values3: Vec<Value> = vec![Value::Integer(5), Value::Integer(6)];
-        let rows: Vec<Row> = vec![Row{values: values1}, Row{values: values2}, Row{values: values3}];
-        let objects = Group {rows};
+        let rows: Vec<Row> = vec![
+            Row { values: values1 },
+            Row { values: values2 },
+            Row { values: values3 },
+        ];
+        let objects = Group { rows };
 
         if let Value::Integer(v) = aggregation_max("field1", &titles, &objects) {
             assert_eq!(v, 5);
@@ -160,8 +164,12 @@ mod tests {
         let values1: Vec<Value> = vec![Value::Integer(1), Value::Integer(2)];
         let values2: Vec<Value> = vec![Value::Integer(3), Value::Integer(4)];
         let values3: Vec<Value> = vec![Value::Integer(5), Value::Integer(6)];
-        let rows: Vec<Row> = vec![Row{values: values1}, Row{values: values2}, Row{values: values3}];
-        let objects = Group {rows};
+        let rows: Vec<Row> = vec![
+            Row { values: values1 },
+            Row { values: values2 },
+            Row { values: values3 },
+        ];
+        let objects = Group { rows };
 
         if let Value::Integer(v) = aggregation_min("field1", &titles, &objects) {
             assert_eq!(v, 1);
@@ -177,8 +185,12 @@ mod tests {
         let values1: Vec<Value> = vec![Value::Integer(1), Value::Integer(2)];
         let values2: Vec<Value> = vec![Value::Integer(3), Value::Integer(4)];
         let values3: Vec<Value> = vec![Value::Integer(5), Value::Integer(6)];
-        let rows: Vec<Row> = vec![Row{values: values1}, Row{values: values2}, Row{values: values3}];
-        let objects = Group {rows};
+        let rows: Vec<Row> = vec![
+            Row { values: values1 },
+            Row { values: values2 },
+            Row { values: values3 },
+        ];
+        let objects = Group { rows };
 
         if let Value::Integer(v) = aggregation_sum("field1", &titles, &objects) {
             assert_eq!(v, 9);
@@ -194,8 +206,12 @@ mod tests {
         let values1: Vec<Value> = vec![Value::Integer(1), Value::Integer(2)];
         let values2: Vec<Value> = vec![Value::Integer(3), Value::Integer(4)];
         let values3: Vec<Value> = vec![Value::Integer(5), Value::Integer(6)];
-        let rows: Vec<Row> = vec![Row{values: values1}, Row{values: values2}, Row{values: values3}];
-        let objects = Group {rows};
+        let rows: Vec<Row> = vec![
+            Row { values: values1 },
+            Row { values: values2 },
+            Row { values: values3 },
+        ];
+        let objects = Group { rows };
 
         if let Value::Integer(v) = aggregation_average("field1", &titles, &objects) {
             assert_eq!(v, 3);
@@ -211,8 +227,12 @@ mod tests {
         let values1: Vec<Value> = vec![Value::Integer(1), Value::Integer(2)];
         let values2: Vec<Value> = vec![Value::Integer(3), Value::Integer(4)];
         let values3: Vec<Value> = vec![Value::Integer(5), Value::Integer(6)];
-        let rows: Vec<Row> = vec![Row{values: values1}, Row{values: values2}, Row{values: values3}];
-        let objects = Group {rows};
+        let rows: Vec<Row> = vec![
+            Row { values: values1 },
+            Row { values: values2 },
+            Row { values: values3 },
+        ];
+        let objects = Group { rows };
 
         if let Value::Integer(v) = aggregation_count("field1", &titles, &objects) {
             assert_eq!(v, 3);
