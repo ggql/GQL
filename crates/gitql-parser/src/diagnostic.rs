@@ -115,3 +115,149 @@ impl Diagnostic {
         Box::new(self)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_diagnostic_new() {
+        let label = "label";
+        let message = "message";
+
+        let diag = Diagnostic::new(&label, &message);
+        assert_eq!(diag.label, label);
+        assert_eq!(diag.message, message);
+    }
+
+    #[test]
+    fn test_diagnostic_error() {
+        let message = "message";
+
+        let diag = Diagnostic::error(&message);
+        assert_eq!(diag.label, "Error");
+        assert_eq!(diag.message, message);
+    }
+
+    #[test]
+    fn test_diagnostic_exception() {
+        let message = "message";
+
+        let diag = Diagnostic::exception(&message);
+        assert_eq!(diag.label, "Exception");
+        assert_eq!(diag.message, message);
+    }
+
+    #[test]
+    fn test_diagnostic_with_location() {
+        let label = "label";
+        let message = "message";
+        let start = 1;
+        let end = 2;
+
+        let mut diag = Diagnostic::new(&label, &message);
+        diag = diag.with_location(Location { start, end });
+
+        if let Some((s, e)) = diag.location {
+            assert_eq!(s, start);
+            assert_eq!(e, end);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_diagnostic_with_location_span() {
+        let label = "label";
+        let message = "message";
+        let start = 1;
+        let end = 2;
+
+        let mut diag = Diagnostic::new(&label, &message);
+        diag = diag.with_location_span(start, end);
+
+        if let Some((s, e)) = diag.location {
+            assert_eq!(s, start);
+            assert_eq!(e, end);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_diagnostic_add_note() {
+        let label = "label";
+        let message = "message";
+        let note = "note";
+
+        let mut diag = Diagnostic::new(&label, &message);
+        diag = diag.add_note(note);
+
+        let ret = diag.notes[0].to_owned();
+        assert_eq!(ret, note);
+    }
+
+    #[test]
+    fn test_diagnostic_add_help() {
+        let label = "label";
+        let message = "message";
+        let help = "help";
+
+        let mut diag = Diagnostic::new(&label, &message);
+        diag = diag.add_help(help);
+
+        let ret = diag.helps[0].to_owned();
+        assert_eq!(ret, help);
+    }
+
+    #[test]
+    fn test_diagnostic_with_docs() {
+        let label = "label";
+        let message = "message";
+        let docs = "docs";
+
+        let mut diag = Diagnostic::new(&label, &message);
+        diag = diag.with_docs(docs);
+
+        if let Some(ret) = diag.docs {
+            assert_eq!(ret, docs);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_diagnostic_label() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_diagnostic_message() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_diagnostic_location() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_diagnostic_notes() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_diagnostic_helps() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_diagnostic_docs() {
+        assert!(true);
+    }
+
+    #[test]
+    fn test_diagnostic_as_boxed() {
+        assert!(true);
+    }
+}

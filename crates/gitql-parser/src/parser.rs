@@ -2340,3 +2340,1693 @@ fn type_mismatch_error(
     .with_location(location)
     .as_boxed()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_gql() {
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // Test: SET @name = value
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Set,
+                literal: "SET".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::GlobalVariable,
+                literal: "@name".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Equal,
+                literal: "=".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::String,
+                literal: "value".to_string(),
+            },
+        ];
+
+        let ret = parse_gql(tokens, &mut env);
+        if ret.is_err() {
+            assert!(false);
+        }
+
+        // Test: SET @name
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::GlobalVariable,
+                literal: "@name".to_string(),
+            },
+        ];
+
+        let ret = parse_gql(tokens, &mut env);
+        if ret.is_err() {
+            assert!(false);
+        }
+
+        // Test: DISTINCT
+        let tokens = vec![Token {
+            location: Location { start: 1, end: 2 },
+            kind: TokenKind::Distinct,
+            literal: "DISTINCT".to_string(),
+        }];
+
+        let ret = parse_gql(tokens, &mut env);
+        if ret.is_ok() {
+            assert!(false);
+        }
+
+        // Test: SELECT @name @invalid
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::GlobalVariable,
+                literal: "@name".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::GlobalVariable,
+                literal: "@invalid".to_string(),
+            },
+        ];
+
+        let ret = parse_gql(tokens, &mut env);
+        if ret.is_ok() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_set_query() {
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // Test: SET @invalid
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Set,
+                literal: "SET".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Set,
+                literal: "@invalid".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_set_query(&mut env, &tokens, &mut position);
+        if ret.is_ok() {
+            assert!(false);
+        }
+
+        // Test: SET @name
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Set,
+                literal: "SET".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::GlobalVariable,
+                literal: "@name".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_set_query(&mut env, &tokens, &mut position);
+        if ret.is_ok() {
+            assert!(false);
+        }
+
+        // Test: SET @name =
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Set,
+                literal: "SET".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::GlobalVariable,
+                literal: "@name".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Equal,
+                literal: "=".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_set_query(&mut env, &tokens, &mut position);
+        if ret.is_ok() {
+            assert!(false);
+        }
+
+        // Test: SET @one = 1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Set,
+                literal: "SET".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::GlobalVariable,
+                literal: "@one".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Equal,
+                literal: "=".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_set_query(&mut env, &tokens, &mut position);
+        if ret.is_err() {
+            assert!(false);
+        }
+
+        // Test: SET @STRING = ""GitQL"
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Set,
+                literal: "SET".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::GlobalVariable,
+                literal: "@STRING".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Equal,
+                literal: "=".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::String,
+                literal: "GitQL".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_set_query(&mut env, &tokens, &mut position);
+        if ret.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_select_query() {
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // Test: SELECT SELECT
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_select_query(&mut env, &tokens, &mut position);
+        if ret.is_ok() {
+            assert!(false);
+        }
+
+        // Test: SELECT count(name) FROM commits
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "count".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::RightParen,
+                literal: ")".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Symbol,
+                literal: "commits".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_select_query(&mut env, &tokens, &mut position);
+        if ret.is_err() {
+            assert!(false);
+        }
+
+        // SELECT * FROM branches WHERE is_head = "true"
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Star,
+                literal: "*".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "branches".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Where,
+                literal: "WHERE".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Symbol,
+                literal: "is_head".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Equal,
+                literal: "=".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::True,
+                literal: "true".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_select_query(&mut env, &tokens, &mut position);
+        if ret.is_err() {
+            assert!(false);
+        }
+
+        // SELECT * FROM commits GROUP BY name
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Star,
+                literal: "*".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "commits".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Group,
+                literal: "GROUP".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::By,
+                literal: "BY".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_select_query(&mut env, &tokens, &mut position);
+        if ret.is_err() {
+            assert!(false);
+        }
+
+        // SELECT * FROM branches GROUP BY name HAVING is_head = "true"
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Star,
+                literal: "*".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "branches".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Group,
+                literal: "GROUP".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::By,
+                literal: "BY".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+            Token {
+                location: Location { start: 8, end: 9 },
+                kind: TokenKind::Having,
+                literal: "HAVING".to_string(),
+            },
+            Token {
+                location: Location { start: 9, end: 10 },
+                kind: TokenKind::Symbol,
+                literal: "is_head".to_string(),
+            },
+            Token {
+                location: Location { start: 10, end: 11 },
+                kind: TokenKind::Equal,
+                literal: "=".to_string(),
+            },
+            Token {
+                location: Location { start: 11, end: 12 },
+                kind: TokenKind::True,
+                literal: "true".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_select_query(&mut env, &tokens, &mut position);
+        if ret.is_err() {
+            assert!(false);
+        }
+
+        // SELECT * FROM commits LIMIT 10
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Star,
+                literal: "*".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "commits".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Limit,
+                literal: "LIMIT".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Integer,
+                literal: "10".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_select_query(&mut env, &tokens, &mut position);
+        if ret.is_err() {
+            assert!(false);
+        }
+
+        // SELECT * FROM commits OFFSET 10
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Star,
+                literal: "*".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "commits".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Offset,
+                literal: "OFFSET".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Integer,
+                literal: "10".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_select_query(&mut env, &tokens, &mut position);
+        if ret.is_err() {
+            assert!(false);
+        }
+
+        // SELECT name, email FROM commits ORDER BY name
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Comma,
+                literal: ",".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "email".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Symbol,
+                literal: "commits".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Order,
+                literal: "ORDER".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::By,
+                literal: "BY".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let ret = parse_select_query(&mut env, &tokens, &mut position);
+        if ret.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_select_statement() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // SELECT
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+        ];
+
+        let mut position = 1;
+
+        let statement = parse_select_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // SELECT name, name FROM commits
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Comma,
+                literal: ",".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Symbol,
+                literal: "commits".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_select_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // SELECT title AS AS FROM commits
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "title".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::As,
+                literal: "AS".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::As,
+                literal: "AS".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Symbol,
+                literal: "commits".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_select_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // SELECT title AS title, message AS title FROM commits
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "title".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::As,
+                literal: "AS".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "title".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Comma,
+                literal: ",".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Symbol,
+                literal: "message".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::As,
+                literal: "AS".to_string(),
+            },
+            Token {
+                location: Location { start: 8, end: 9 },
+                kind: TokenKind::Symbol,
+                literal: "title".to_string(),
+            },
+            Token {
+                location: Location { start: 9, end: 10 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 10, end: 10 },
+                kind: TokenKind::Symbol,
+                literal: "commits".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_select_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // SELECT * FROM FROM
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Star,
+                literal: "*".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_select_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // SELECT * FROM invalid
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Star,
+                literal: "*".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "invalid".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_select_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // SELECT *
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Star,
+                literal: "*".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_select_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // SELECT FROM commits
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Symbol,
+                literal: "commits".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_select_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // SELECT * FROM commits
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Select,
+                literal: "SELECT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Star,
+                literal: "*".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::From,
+                literal: "FROM".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "commits".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_select_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_where_statement() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // WHERE
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Where,
+                literal: "WHERE".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_where_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // WHERE head
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Where,
+                literal: "WHERE".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "head".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_where_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // WHERE is_head
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Where,
+                literal: "WHERE".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "is_head".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_where_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_group_by_statement() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // GROUP
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Group,
+                literal: "GROUP".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_group_by_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // GROUP BY
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Group,
+                literal: "GROUP".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::By,
+                literal: "BY".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_group_by_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // GROUP BY name
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Group,
+                literal: "GROUP".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::By,
+                literal: "BY".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+        ];
+
+        env.define_global("name".to_string(), DataType::Text);
+        let mut position = 0;
+
+        let statement = parse_group_by_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_having_statement() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // HAVING
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Having,
+                literal: "HAVING".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_having_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // HAVING is_head = "true"
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Having,
+                literal: "HAVING".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "is_head".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Equal,
+                literal: "=".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::True,
+                literal: "true".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_having_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_limit_statement() {
+        // LIMIT
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Limit,
+                literal: "LIMIT".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_limit_statement(&tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // LIMIT -1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Limit,
+                literal: "LIMIT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Integer,
+                literal: "-1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_limit_statement(&tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // LIMIT 1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Limit,
+                literal: "LIMIT".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_limit_statement(&tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_offset_statement() {
+        // OFFSET
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Offset,
+                literal: "OFFSET".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_offset_statement(&tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // OFFSET -1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Offset,
+                literal: "OFFSET".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Integer,
+                literal: "-1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_offset_statement(&tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // OFFSET 1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Offset,
+                literal: "OFFSET".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_offset_statement(&tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_order_by_statement() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // ORDER
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Order,
+                literal: "ORDER".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_order_by_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // ORDER BY name
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Order,
+                literal: "ORDER".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::By,
+                literal: "BY".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_order_by_statement(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // commit_count > -1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Greater,
+                literal: ">".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "-1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_assignment_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // commit_count := 1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::GlobalVariable,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::ColonEqual,
+                literal: ":=".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_assignment_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_is_null_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // 1 IS
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Is,
+                literal: "IS".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_is_null_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // 1 IS NULL
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Is,
+                literal: "IS".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Null,
+                literal: "NULL".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_is_null_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // 1 IS NOT NULL
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Is,
+                literal: "IS".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Not,
+                literal: "NOT".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Null,
+                literal: "NULL".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_is_null_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_in_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // "One" IN
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::String,
+                literal: "One".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::In,
+                literal: "IN".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_in_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // "One" IN ("One", 1)
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::String,
+                literal: "One".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::In,
+                literal: "IN".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::String,
+                literal: "One".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Comma,
+                literal: ",".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::RightParen,
+                literal: ")".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_in_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // "One" IN ("One", "Two")
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::String,
+                literal: "One".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::In,
+                literal: "IN".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::String,
+                literal: "One".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Comma,
+                literal: ",".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::String,
+                literal: "Two".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::RightParen,
+                literal: ")".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_in_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn test_parse_between_expression() {}
+
+    #[test]
+    fn test_parse_logical_or_expression() {}
+
+    #[test]
+    fn test_parse_logical_and_expression() {}
+
+    #[test]
+    fn test_parse_bitwise_or_expression() {}
+
+    #[test]
+    fn test_parse_logical_xor_expression() {}
+
+    #[test]
+    fn test_parse_bitwise_and_expression() {}
+
+    #[test]
+    fn test_parse_equality_expression() {}
+
+    #[test]
+    fn test_parse_comparison_expression() {}
+
+    #[test]
+    fn test_parse_bitwise_shift_expression() {}
+
+    #[test]
+    fn test_parse_term_expression() {}
+
+    #[test]
+    fn test_parse_factor_expression() {}
+
+    #[test]
+    fn test_parse_like_expression() {}
+
+    #[test]
+    fn test_parse_glob_expression() {}
+
+    #[test]
+    fn test_parse_unary_expression() {}
+
+    #[test]
+    fn test_parse_function_call_expression() {}
+
+    #[test]
+    fn test_parse_arguments_expression() {}
+
+    #[test]
+    fn test_parse_primary_expression() {}
+
+    #[test]
+    fn test_parse_group_expression() {}
+
+    #[test]
+    fn test_parse_case_expression() {}
+
+    #[test]
+    fn test_check_function_call_arguments() {}
+
+    #[test]
+    fn test_type_check_selected_fields() {}
+
+    #[test]
+    fn test_un_expected_statement_error() {}
+
+    #[test]
+    fn test_un_expected_expression_error() {}
+
+    #[test]
+    fn test_un_expected_content_after_correct_statement() {}
+
+    #[test]
+    fn test_get_expression_name() {}
+
+    #[test]
+    fn test_register_current_table_fields_types() {}
+
+    #[test]
+    fn test_select_all_table_fields() {}
+
+    #[test]
+    fn test_consume_kind() {}
+
+    #[test]
+    fn test_get_safe_location() {}
+
+    #[test]
+    fn test_is_assignment_operator() {}
+
+    #[test]
+    fn test_is_term_operator() {}
+
+    #[test]
+    fn test_is_bitwise_shift_operator() {}
+
+    #[test]
+    fn test_is_prefix_unary_operator() {}
+
+    #[test]
+    fn test_is_comparison_operator() {}
+
+    #[test]
+    fn test_is_factor_operator() {}
+
+    #[test]
+    fn test_is_asc_or_desc() {}
+
+    #[test]
+    fn test_type_mismatch_error() {}
+}

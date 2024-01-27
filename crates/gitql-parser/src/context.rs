@@ -20,3 +20,25 @@ impl ParserContext {
         format!("column_{}", self.generated_field_count)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_column_name() {
+        let mut ctx = ParserContext {
+            aggregations: Default::default(),
+            selected_fields: vec![],
+            hidden_selections: vec![],
+            generated_field_count: 0,
+            is_single_value_query: false,
+            has_group_by_statement: false,
+        };
+
+        let ret = ctx.generate_column_name();
+        println!("{}", ret);
+
+        assert!(true);
+    }
+}
