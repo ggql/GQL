@@ -2964,13 +2964,11 @@ mod tests {
         };
 
         // SELECT
-        let tokens = vec![
-            Token {
-                location: Location { start: 1, end: 2 },
-                kind: TokenKind::Select,
-                literal: "SELECT".to_string(),
-            },
-        ];
+        let tokens = vec![Token {
+            location: Location { start: 1, end: 2 },
+            kind: TokenKind::Select,
+            literal: "SELECT".to_string(),
+        }];
 
         let mut position = 1;
 
@@ -3273,13 +3271,11 @@ mod tests {
         };
 
         // WHERE
-        let tokens = vec![
-            Token {
-                location: Location { start: 1, end: 2 },
-                kind: TokenKind::Where,
-                literal: "WHERE".to_string(),
-            },
-        ];
+        let tokens = vec![Token {
+            location: Location { start: 1, end: 2 },
+            kind: TokenKind::Where,
+            literal: "WHERE".to_string(),
+        }];
 
         let mut position = 0;
 
@@ -3341,13 +3337,11 @@ mod tests {
         };
 
         // GROUP
-        let tokens = vec![
-            Token {
-                location: Location { start: 1, end: 2 },
-                kind: TokenKind::Group,
-                literal: "GROUP".to_string(),
-            },
-        ];
+        let tokens = vec![Token {
+            location: Location { start: 1, end: 2 },
+            kind: TokenKind::Group,
+            literal: "GROUP".to_string(),
+        }];
 
         let mut position = 0;
 
@@ -3415,13 +3409,11 @@ mod tests {
         };
 
         // HAVING
-        let tokens = vec![
-            Token {
-                location: Location { start: 1, end: 2 },
-                kind: TokenKind::Having,
-                literal: "HAVING".to_string(),
-            },
-        ];
+        let tokens = vec![Token {
+            location: Location { start: 1, end: 2 },
+            kind: TokenKind::Having,
+            literal: "HAVING".to_string(),
+        }];
 
         let mut position = 0;
 
@@ -3465,13 +3457,11 @@ mod tests {
     #[test]
     fn test_parse_limit_statement() {
         // LIMIT
-        let tokens = vec![
-            Token {
-                location: Location { start: 1, end: 2 },
-                kind: TokenKind::Limit,
-                literal: "LIMIT".to_string(),
-            },
-        ];
+        let tokens = vec![Token {
+            location: Location { start: 1, end: 2 },
+            kind: TokenKind::Limit,
+            literal: "LIMIT".to_string(),
+        }];
 
         let mut position = 0;
 
@@ -3526,13 +3516,11 @@ mod tests {
     #[test]
     fn test_parse_offset_statement() {
         // OFFSET
-        let tokens = vec![
-            Token {
-                location: Location { start: 1, end: 2 },
-                kind: TokenKind::Offset,
-                literal: "OFFSET".to_string(),
-            },
-        ];
+        let tokens = vec![Token {
+            location: Location { start: 1, end: 2 },
+            kind: TokenKind::Offset,
+            literal: "OFFSET".to_string(),
+        }];
 
         let mut position = 0;
 
@@ -3594,13 +3582,11 @@ mod tests {
         };
 
         // ORDER
-        let tokens = vec![
-            Token {
-                location: Location { start: 1, end: 2 },
-                kind: TokenKind::Order,
-                literal: "ORDER".to_string(),
-            },
-        ];
+        let tokens = vec![Token {
+            location: Location { start: 1, end: 2 },
+            kind: TokenKind::Order,
+            literal: "ORDER".to_string(),
+        }];
 
         let mut position = 0;
 
