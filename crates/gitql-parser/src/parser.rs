@@ -3906,52 +3906,1410 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_between_expression() {}
+    fn test_parse_between_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // commit_count BETWEEN
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Between,
+                literal: "BETWEEN".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_between_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // commit_count BETWEEN 2
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Between,
+                literal: "BETWEEN".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "2".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_between_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // commit_count BETWEEN 2 .. invalid
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Between,
+                literal: "BETWEEN".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "2".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::DotDot,
+                literal: "..".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::String,
+                literal: "invalid".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_between_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // commit_count BETWEEN 2 .. 30000
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Between,
+                literal: "BETWEEN".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "2".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::DotDot,
+                literal: "..".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Integer,
+                literal: "30000".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_between_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_logical_or_expression() {}
+    fn test_parse_logical_or_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // commit_count > 0 || commit_count < 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Greater,
+                literal: ">".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::LogicalOr,
+                literal: "||".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_logical_or_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // commit_count > 0 OR commit_count < 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Greater,
+                literal: ">".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::LogicalOr,
+                literal: "OR".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_logical_or_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_logical_and_expression() {}
+    fn test_parse_logical_and_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // commit_count > 0 && commit_count < 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Greater,
+                literal: ">".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::LogicalAnd,
+                literal: "&&".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_logical_or_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // commit_count > 0 AND commit_count < 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Greater,
+                literal: ">".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::LogicalAnd,
+                literal: "AND".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_logical_and_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_bitwise_or_expression() {}
+    fn test_parse_bitwise_or_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // commit_count > 0 | commit_count < 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Greater,
+                literal: ">".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::BitwiseOr,
+                literal: "|".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_bitwise_or_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_logical_xor_expression() {}
+    fn test_parse_logical_xor_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // commit_count > 0 ^ commit_count < 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Greater,
+                literal: ">".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::LogicalXor,
+                literal: "^".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_logical_xor_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // commit_count > 0 XOR commit_count < 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Greater,
+                literal: ">".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::LogicalXor,
+                literal: "XOR".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_logical_xor_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_bitwise_and_expression() {}
+    fn test_parse_bitwise_and_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // commit_count > 0 & commit_count < 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Greater,
+                literal: ">".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::BitwiseAnd,
+                literal: "&".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_bitwise_and_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_equality_expression() {}
+    fn test_parse_equality_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // commit_count = 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Equal,
+                literal: "=".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_equality_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // commit_count != 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::BangEqual,
+                literal: "!=".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_equality_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // commit_count <> 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::BangEqual,
+                literal: "<>".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_equality_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_comparison_expression() {}
+    fn test_parse_comparison_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // commit_count > 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Greater,
+                literal: ">".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_comparison_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // commit_count >= 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::GreaterEqual,
+                literal: ">=".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_comparison_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // commit_count < 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_comparison_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // commit_count <= 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::LessEqual,
+                literal: "<=".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_comparison_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // commit_count <=> 0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::NullSafeEqual,
+                literal: "<=>".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_comparison_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_bitwise_shift_expression() {}
+    fn test_parse_bitwise_shift_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // commit_count << 1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::BitwiseLeftShift,
+                literal: "<<".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_bitwise_shift_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // commit_count >> 1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::BitwiseRightShift,
+                literal: ">>".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_bitwise_shift_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_term_expression() {}
+    fn test_parse_term_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // 1 + 1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Plus,
+                literal: "+".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_term_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // 1 - 1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Minus,
+                literal: "-".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_term_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_factor_expression() {}
+    fn test_parse_factor_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // 1 * 2
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Star,
+                literal: "*".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "2".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_factor_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // 1 / 2
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Slash,
+                literal: "/".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "2".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_factor_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // 1 % 2
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Percentage,
+                literal: "%".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "2".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_factor_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_like_expression() {}
+    fn test_parse_like_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // "10 usd" LIKE 1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::String,
+                literal: "10 usd".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Like,
+                literal: "LIKE".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_like_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // "10 usd" LIKE "[0-9]* usd"
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::String,
+                literal: "10 usd".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Like,
+                literal: "LIKE".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::String,
+                literal: "[0-9]* usd".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_like_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_glob_expression() {}
+    fn test_parse_glob_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // "Git Query Language" GLOB 1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::String,
+                literal: "Git Query Language".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Glob,
+                literal: "GLOB".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_glob_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // "Git Query Language" GLOB "Git*"
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::String,
+                literal: "Git Query Language".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Glob,
+                literal: "GLOB".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::String,
+                literal: "Git*".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_glob_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_unary_expression() {}
+    fn test_parse_unary_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // !1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Bang,
+                literal: "!".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_unary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // -is_remote
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Minus,
+                literal: "-".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "is_remote".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_unary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // !is_remote
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Bang,
+                literal: "!".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "is_remote".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_unary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // -1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Minus,
+                literal: "-".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_unary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_function_call_expression() {}
+    fn test_parse_function_call_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // invalid(name)
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "invalid".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::RightParen,
+                literal: ")".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_function_call_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // lower(name)
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "lower".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::RightParen,
+                literal: ")".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_function_call_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // max(commit_count)
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "max".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Symbol,
+                literal: "commit_count".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::RightParen,
+                literal: ")".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_function_call_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_arguments_expression() {}
+    fn test_parse_arguments_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // (name]
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::String,
+                literal: "]".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_arguments_expressions(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // (name)
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::RightParen,
+                literal: ")".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_arguments_expressions(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // (name1, name2)
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Symbol,
+                literal: "name1".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::Comma,
+                literal: ",".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Symbol,
+                literal: "name2".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::RightParen,
+                literal: ")".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_arguments_expressions(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
     fn test_parse_primary_expression() {}
