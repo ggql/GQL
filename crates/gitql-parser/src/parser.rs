@@ -5312,13 +5312,384 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_primary_expression() {}
+    fn test_parse_primary_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // name
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::String,
+                literal: "name".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_primary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // name
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "name".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_primary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // name
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::GlobalVariable,
+                literal: "name".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_primary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // 1
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_primary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // 1.0
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Float,
+                literal: "1.0".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_primary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // TRUE
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::True,
+                literal: "TRUE".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_primary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // FALSE
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::False,
+                literal: "FALSE".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_primary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // NULL
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Null,
+                literal: "NULL".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_primary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // ("One")
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::String,
+                literal: "One".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::RightParen,
+                literal: ")".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_primary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // CASE WHEN isRemote THEN 1 ELSE 0 END
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Case,
+                literal: "CASE".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::When,
+                literal: "WHEN".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::True,
+                literal: "isRemote".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Then,
+                literal: "THEN".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Else,
+                literal: "ELSE".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+            Token {
+                location: Location { start: 8, end: 9 },
+                kind: TokenKind::End,
+                literal: "END".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_primary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+
+        // *
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Star,
+                literal: "*".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_primary_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_group_expression() {}
+    fn test_parse_group_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // ("One"(
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::String,
+                literal: "One".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_group_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // ("One")
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::String,
+                literal: "One".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::RightParen,
+                literal: ")".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_group_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_parse_case_expression() {}
+    fn test_parse_case_expression() {
+        let mut context = ParserContext::default();
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // CASE WHEN isRemote
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Case,
+                literal: "CASE".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::When,
+                literal: "WHEN".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::True,
+                literal: "isRemote".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_case_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // CASE WHEN isRemote THEN 1 ELSE 0 END
+        let tokens = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Case,
+                literal: "CASE".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::When,
+                literal: "WHEN".to_string(),
+            },
+            Token {
+                location: Location { start: 3, end: 4 },
+                kind: TokenKind::True,
+                literal: "isRemote".to_string(),
+            },
+            Token {
+                location: Location { start: 4, end: 5 },
+                kind: TokenKind::Then,
+                literal: "THEN".to_string(),
+            },
+            Token {
+                location: Location { start: 5, end: 6 },
+                kind: TokenKind::Integer,
+                literal: "1".to_string(),
+            },
+            Token {
+                location: Location { start: 6, end: 7 },
+                kind: TokenKind::Else,
+                literal: "ELSE".to_string(),
+            },
+            Token {
+                location: Location { start: 7, end: 8 },
+                kind: TokenKind::Integer,
+                literal: "0".to_string(),
+            },
+            Token {
+                location: Location { start: 8, end: 9 },
+                kind: TokenKind::End,
+                literal: "END".to_string(),
+            },
+        ];
+
+        let mut position = 0;
+
+        let statement = parse_case_expression(&mut context, &mut env, &tokens, &mut position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
     fn test_check_function_call_arguments() {}
