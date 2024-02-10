@@ -5692,25 +5692,392 @@ mod tests {
     }
 
     #[test]
-    fn test_check_function_call_arguments() {}
+    fn test_check_function_call_arguments() {
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // lower(invalid)
+        let mut arguments: Vec<Box<dyn Expression>> = vec![
+            Box::new(SymbolExpression{ value: "invalid".to_string() })
+        ];
+        let parameters = vec![DataType::Text, DataType::Text, DataType::Optional(Box::new(DataType::Any))];
+        let function_name = "lower".to_string();
+        let location = Location{ start: 1, end: 2 };
+
+        let statement = check_function_call_arguments(&mut env, &mut arguments, &parameters, function_name, location);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // lower(invalid, invalid, invalid)
+        let mut arguments: Vec<Box<dyn Expression>> = vec![
+            Box::new(SymbolExpression{ value: "invalid".to_string() }),
+            Box::new(SymbolExpression{ value: "invalid".to_string() }),
+            Box::new(SymbolExpression{ value: "invalid".to_string() }),
+        ];
+        let parameters = vec![DataType::Text, DataType::Optional(Box::new(DataType::Any))];
+        let function_name = "lower".to_string();
+        let location = Location{ start: 1, end: 2 };
+
+        let statement = check_function_call_arguments(&mut env, &mut arguments, &parameters, function_name, location);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // lower(invalid)
+        let mut arguments: Vec<Box<dyn Expression>> = vec![
+            Box::new(SymbolExpression{ value: "invalid".to_string() }),
+        ];
+        let parameters = vec![DataType::Text, DataType::Text, DataType::Varargs(Box::new(DataType::Any))];
+        let function_name = "lower".to_string();
+        let location = Location{ start: 1, end: 2 };
+
+        let statement = check_function_call_arguments(&mut env, &mut arguments, &parameters, function_name, location);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // lower(invalid, invalid)
+        let mut arguments: Vec<Box<dyn Expression>> = vec![
+            Box::new(SymbolExpression{ value: "invalid".to_string() }),
+            Box::new(SymbolExpression{ value: "invalid".to_string() }),
+        ];
+        let parameters = vec![DataType::Text];
+        let function_name = "lower".to_string();
+        let location = Location{ start: 1, end: 2 };
+
+        let statement = check_function_call_arguments(&mut env, &mut arguments, &parameters, function_name, location);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // lower(invalid)
+        let mut arguments: Vec<Box<dyn Expression>> = vec![
+            Box::new(SymbolExpression{ value: "invalid".to_string() }),
+        ];
+        let parameters = vec![DataType::Integer];
+        let function_name = "lower".to_string();
+        let location = Location{ start: 1, end: 2 };
+
+        let statement = check_function_call_arguments(&mut env, &mut arguments, &parameters, function_name, location);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // lower(invalid, invalid)
+        let mut arguments: Vec<Box<dyn Expression>> = vec![
+            Box::new(SymbolExpression{ value: "invalid".to_string() }),
+            Box::new(SymbolExpression{ value: "invalid".to_string() })
+        ];
+        let parameters = vec![DataType::Text, DataType::Integer, DataType::Optional(Box::new(DataType::Any))];
+        let function_name = "lower".to_string();
+        let location = Location{ start: 1, end: 2 };
+
+        let statement = check_function_call_arguments(&mut env, &mut arguments, &parameters, function_name, location);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // lower(name)
+        let mut arguments: Vec<Box<dyn Expression>> = vec![Box::new(SymbolExpression{ value: "name".to_string() })];
+        let parameters = vec![DataType::Text];
+        let function_name = "lower".to_string();
+        let location = Location{ start: 1, end: 2 };
+
+        let statement = check_function_call_arguments(&mut env, &mut arguments, &parameters, function_name, location);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_type_check_selected_fields() {}
+    fn test_type_check_selected_fields() {
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        // invalid
+        let table_name = "invalid";
+        let fields_names: Vec<String> = vec![
+            "commit_id".to_string(),
+        ];
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "invalid".to_string(),
+            },
+        ];
+        let position= 0;
+
+        env.scopes.clear();
+        env.scopes.insert("commit_id".to_string(), DataType::Undefined);
+
+        let statement = type_check_selected_fields(&mut env, &table_name, &fields_names, &tokens, position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // invalid
+        let table_name = "invalid";
+        let fields_names: Vec<String> = vec![
+            "invalid".to_string(),
+        ];
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "invalid".to_string(),
+            },
+        ];
+        let position= 0;
+
+        env.scopes.clear();
+        env.scopes.insert("commit_id".to_string(), DataType::Text);
+
+        let statement = type_check_selected_fields(&mut env, &table_name, &fields_names, &tokens, position);
+        if statement.is_ok() {
+            assert!(false);
+        }
+
+        // commits
+        let table_name = "commits";
+        let fields_names: Vec<String> = vec![
+            "commit_id".to_string(),
+        ];
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "commits".to_string(),
+            },
+        ];
+        let position= 0;
+
+        env.scopes.clear();
+        env.scopes.insert("commit_id".to_string(), DataType::Text);
+
+        let statement = type_check_selected_fields(&mut env, &table_name, &fields_names, &tokens, position);
+        if statement.is_err() {
+            assert!(false);
+        }
+    }
 
     #[test]
-    fn test_un_expected_statement_error() {}
+    fn test_un_expected_statement_error() {
+        // start == 0
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 0, end: 0 },
+                kind: TokenKind::Symbol,
+                literal: "select".to_string(),
+            },
+        ];
+        let mut position = 0;
+
+        let statement = un_expected_statement_error(&tokens, &mut position);
+        assert_eq!("Unexpected statement", statement.message());
+
+        // start != 0
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "select".to_string(),
+            },
+        ];
+        let mut position = 0;
+
+        let statement = un_expected_statement_error(&tokens, &mut position);
+        assert_eq!("Unexpected statement", statement.message());
+    }
 
     #[test]
-    fn test_un_expected_expression_error() {}
+    fn test_un_expected_expression_error() {
+        // position == 0
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 0, end: 0 },
+                kind: TokenKind::Symbol,
+                literal: "select".to_string(),
+            },
+        ];
+        let mut position = 0;
+
+        let statement = un_expected_expression_error(&tokens, &mut position);
+        assert_eq!("Can't complete parsing this expression", statement.message());
+
+        // current.kind == ASC
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Descending,
+                literal: "DESC".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Ascending,
+                literal: "ASC".to_string(),
+            },
+        ];
+        let mut position = 1;
+
+        let statement = un_expected_expression_error(&tokens, &mut position);
+        assert_eq!("`ASC` and `DESC` must be used in `ORDER BY` statement", statement.message());
+
+        // current.kind == =
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Equal,
+                literal: "==".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Equal,
+                literal: "==".to_string(),
+            },
+        ];
+        let mut position = 1;
+
+        let statement = un_expected_expression_error(&tokens, &mut position);
+        assert_eq!("Unexpected `==`, Just use `=` to check equality", statement.message());
+
+        // current.kind == < =
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Equal,
+                literal: "=".to_string(),
+            },
+        ];
+        let mut position = 1;
+
+        let statement = un_expected_expression_error(&tokens, &mut position);
+        assert_eq!("Unexpected `< =`, do you mean `<=`?", statement.message());
+
+        // current.kind == < <
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+        ];
+        let mut position = 1;
+
+        let statement = un_expected_expression_error(&tokens, &mut position);
+        assert_eq!("Unexpected `< <`, do you mean `<<`?", statement.message());
+
+        // current.kind == < >
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Less,
+                literal: "<".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::Greater,
+                literal: ">".to_string(),
+            },
+        ];
+        let mut position = 1;
+
+        let statement = un_expected_expression_error(&tokens, &mut position);
+        assert_eq!("Unexpected `< >`, do you mean `<>`?", statement.message());
+
+        // current.kind == ()
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::LeftParen,
+                literal: "(".to_string(),
+            },
+            Token {
+                location: Location { start: 2, end: 3 },
+                kind: TokenKind::RightParen,
+                literal: ")".to_string(),
+            },
+        ];
+        let mut position = 1;
+
+        let statement = un_expected_expression_error(&tokens, &mut position);
+        assert_eq!("Can't complete parsing this expression", statement.message());
+    }
 
     #[test]
-    fn test_un_expected_content_after_correct_statement() {}
+    fn test_un_expected_content_after_correct_statement() {
+        // invalid
+        let statement_name = "invalid";
+        let tokens: Vec<Token> = vec![
+            Token {
+                location: Location { start: 1, end: 2 },
+                kind: TokenKind::Symbol,
+                literal: "invalid".to_string(),
+            },
+        ];
+        let mut position = 0;
+
+        let statement = un_expected_content_after_correct_statement(&statement_name, &tokens, &mut position);
+        assert_eq!("Unexpected content after the end of `INVALID` statement", statement.message());
+    }
 
     #[test]
-    fn test_get_expression_name() {}
+    fn test_get_expression_name() {
+        // symbol
+        let expression: Box<dyn Expression> = Box::new(SymbolExpression{ value: "symbol".to_string() });
+
+        let statement = get_expression_name(&expression);
+        if statement.is_ok() {
+            assert_eq!("symbol".to_string(), statement.ok().unwrap().to_string())
+        }
+
+        // global
+        let expression: Box<dyn Expression> = Box::new(GlobalVariableExpression{ name: "global".to_string() });
+
+        let statement = get_expression_name(&expression);
+        if statement.is_ok() {
+            assert_eq!("global".to_string(), statement.ok().unwrap().to_string())
+        }
+
+        // invalid
+        let expression: Box<dyn Expression> = Box::new(StringExpression{ value: "invalid".to_string(), value_type: StringValueType::Text });
+
+        let statement = get_expression_name(&expression);
+        if statement.is_ok() {
+            assert!(false)
+        }
+    }
 
     #[test]
-    fn test_register_current_table_fields_types() {}
+    fn test_register_current_table_fields_types() {
+        // commits
+        let table_name = "commits";
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        register_current_table_fields_types(&table_name, &mut env);
+        assert_eq!(format!("{}", DataType::Text), format!("{}", env.scopes["commit_id"]))
+    }
 
     #[test]
     fn test_select_all_table_fields() {}
