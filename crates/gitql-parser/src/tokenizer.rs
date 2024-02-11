@@ -1001,3 +1001,617 @@ fn resolve_symbol_kind(literal: String) -> TokenKind {
         _ => TokenKind::Symbol,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tokenize() {
+        // Symbol: NAME
+        let script = "NAME".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(4, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("name", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Symbol {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // GlobalVariable: @NAME
+        let script = "@NAME".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(5, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("@name", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::GlobalVariable {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Integer: 0x01
+        let script = "0x01".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(2, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(4, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("1", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Integer {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Integer: 0b01
+        let script = "0b01".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(2, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(4, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("1", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Integer {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Integer: 0o01
+        let script = "0o01".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(2, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(4, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("1", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Integer {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Integer: 1
+        let script = "1".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(1, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("1", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Integer {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Float: 0.1
+        let script = "0.1".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(3, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("0.1", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Float {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // String: "name"
+        let script = "\"name\"".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(6, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("name", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::String {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Symbol: `name`
+        let script = "`name`".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(6, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("name", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Symbol {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Plus: +
+        let script = "+".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("+", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Plus {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Minus: -
+        let script = "-".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("-", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Minus {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Star: *
+        let script = "*".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("*", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Star {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Slash: /
+        let script = "/".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("/", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Slash {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Percentage: %
+        let script = "%".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("%", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Percentage {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // BitwiseOr: |
+        let script = "|".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("|", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::BitwiseOr {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // LogicalOr: ||
+        let script = "||".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("||", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::LogicalOr {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // BitwiseAnd: &
+        let script = "&".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("&", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::BitwiseAnd {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // LogicalAnd: &&
+        let script = "&&".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("&&", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::LogicalAnd {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // LogicalXor: ^
+        let script = "^".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("^", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::LogicalXor {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Comma: ,
+        let script = ",".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!(",", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Comma {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Dot: .
+        let script = ".".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!(".", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Dot {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // DotDot: ..
+        let script = "..".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("..", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::DotDot {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Greater: >
+        let script = ">".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!(">", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Greater {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // GreaterEqual: >=
+        let script = ">=".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!(">=", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::GreaterEqual {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // BitwiseRightShift: >>
+        let script = ">>".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!(">>", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::BitwiseRightShift {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Less: <
+        let script = "<".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("<", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Less {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // NulllSafeEqual: <=>
+        let script = "<=>".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("<=>", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::NullSafeEqual {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // LessEqual: <=
+        let script = "<=".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("<=", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::LessEqual {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // BitwiseLeftShift: <<
+        let script = "<<".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("<<", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::BitwiseLeftShift {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // BangEqual: <>
+        let script = "<>".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("<>", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::BangEqual {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Equal: =
+        let script = "=".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("=", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Equal {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // ColonEqual: :
+        let script = ":".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_err() {
+            assert_eq!("Expect `=` after `:`", tokens.err().unwrap().message());
+        } else {
+            assert!(false);
+        }
+
+        // ColonEqual: :=
+        let script = ":=".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!(":=", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::ColonEqual {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // BangEqual: !
+        let script = "!".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("!", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Bang {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // BangEqual: !=
+        let script = "!=".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("!=", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::BangEqual {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // LeftParen: (
+        let script = "(".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!("(", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::LeftParen {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // RightParen: (
+        let script = ")".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!(")", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::RightParen {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Semicolon: ;
+        let script = ";".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_ok() {
+            assert_eq!(1, tokens.as_ref().ok().unwrap().len());
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.start);
+            assert_eq!(0, tokens.as_ref().ok().unwrap()[0].location.end);
+            assert_eq!(";", tokens.as_ref().ok().unwrap()[0].literal);
+            if tokens.as_ref().ok().unwrap()[0].kind != TokenKind::Semicolon {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Invalid: ?
+        let script = "?".to_string();
+        let tokens = tokenize(script);
+        if tokens.is_err() {
+            assert_eq!("Unexpected character", tokens.err().unwrap().message());
+        } else {
+            assert!(false);
+        }
+    }
+
+    fn test_consume_global_variable_name() {
+    }
+
+    fn test_consume_identifier() {
+    }
+
+    fn test_consume_number() {
+    }
+
+    fn test_consume_backticks_identifier() {
+    }
+
+    fn test_consume_binary_number() {
+    }
+
+    fn test_consume_octal_number() {
+    }
+
+    fn test_consume_hex_number() {
+    }
+
+    fn test_consume_string() {
+    }
+
+    fn test_ignore_single_line_comment() {
+    }
+
+    fn test_ignore_c_style_comment() {
+    }
+
+    fn test_resolve_symbol_kind() {
+    }
+}
