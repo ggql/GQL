@@ -1582,36 +1582,314 @@ mod tests {
         }
     }
 
+    #[test]
     fn test_consume_global_variable_name() {
+        // Invalid: @_
+        let chars: Vec<char> = vec!['@', '_'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_global_variable_name(&chars, &mut pos, &mut start);
+        if token.is_err() {
+            assert_eq!("Global variable name must start with alphabetic character", token.err().unwrap().message());
+        } else {
+            assert!(false);
+        }
+
+        // GlobalVariable: @N
+        let chars: Vec<char> = vec!['@', 'N'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_global_variable_name(&chars, &mut pos, &mut start);
+        if token.is_ok() {
+            assert_eq!(0, token.as_ref().ok().unwrap().location.start);
+            assert_eq!(2, token.as_ref().ok().unwrap().location.end);
+            assert_eq!("@n", token.as_ref().ok().unwrap().literal);
+            if token.as_ref().ok().unwrap().kind != TokenKind::GlobalVariable {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
     }
 
+    #[test]
     fn test_consume_identifier() {
+        // Set: SET
+        let chars: Vec<char> = vec!['S', 'E', 'T'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_identifier(&chars, &mut pos, &mut start);
+        assert_eq!(0, token.location.start);
+        assert_eq!(3, token.location.end);
+        assert_eq!("set", token.literal);
+        if token.kind != TokenKind::Set{
+            assert!(false);
+        }
     }
 
+    #[test]
     fn test_consume_number() {
+        // Integer: 1
+        let chars: Vec<char> = vec!['1'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_number(&chars, &mut pos, &mut start);
+        if token.is_ok() {
+            assert_eq!(0, token.as_ref().ok().unwrap().location.start);
+            assert_eq!(1, token.as_ref().ok().unwrap().location.end);
+            assert_eq!("1", token.as_ref().ok().unwrap().literal);
+            if token.as_ref().ok().unwrap().kind != TokenKind::Integer {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Integer: 1_0
+        let chars: Vec<char> = vec!['1', '_', '0'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_number(&chars, &mut pos, &mut start);
+        if token.is_ok() {
+            assert_eq!(0, token.as_ref().ok().unwrap().location.start);
+            assert_eq!(3, token.as_ref().ok().unwrap().location.end);
+            assert_eq!("10", token.as_ref().ok().unwrap().literal);
+            if token.as_ref().ok().unwrap().kind != TokenKind::Integer {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Float: 1.0
+        let chars: Vec<char> = vec!['1', '.', '0'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_number(&chars, &mut pos, &mut start);
+        if token.is_ok() {
+            assert_eq!(0, token.as_ref().ok().unwrap().location.start);
+            assert_eq!(3, token.as_ref().ok().unwrap().location.end);
+            assert_eq!("1.0", token.as_ref().ok().unwrap().literal);
+            if token.as_ref().ok().unwrap().kind != TokenKind::Float {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Integer: 1_0.0
+        let chars: Vec<char> = vec!['1', '_', '0', '.', '0'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_number(&chars, &mut pos, &mut start);
+        if token.is_ok() {
+            assert_eq!(0, token.as_ref().ok().unwrap().location.start);
+            assert_eq!(5, token.as_ref().ok().unwrap().location.end);
+            assert_eq!("10.0", token.as_ref().ok().unwrap().literal);
+            if token.as_ref().ok().unwrap().kind != TokenKind::Float {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
     }
 
+    #[test]
     fn test_consume_backticks_identifier() {
+        // Symbol: `N
+        let chars: Vec<char> = vec!['`', 'N'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_backticks_identifier(&chars, &mut pos, &mut start);
+        if token.is_err() {
+            assert_eq!("Unterminated backticks", token.err().unwrap().message());
+        } else {
+            assert!(false);
+        }
+
+        // Symbol: `N`
+        let chars: Vec<char> = vec!['`', 'N', '`'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_backticks_identifier(&chars, &mut pos, &mut start);
+        if token.is_ok() {
+            assert_eq!(0, token.as_ref().ok().unwrap().location.start);
+            assert_eq!(3, token.as_ref().ok().unwrap().location.end);
+            assert_eq!("N", token.as_ref().ok().unwrap().literal);
+            if token.as_ref().ok().unwrap().kind != TokenKind::Symbol {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
     }
 
+    #[test]
     fn test_consume_binary_number() {
+        // Integer: 2
+        let chars: Vec<char> = vec!['2'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_binary_number(&chars, &mut pos, &mut start);
+        if token.is_err() {
+            assert_eq!("Missing digits after the integer base prefix", token.err().unwrap().message());
+        } else {
+            assert!(false);
+        }
+
+        // Integer: 010
+        let chars: Vec<char> = vec!['0', '1', '0'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_binary_number(&chars, &mut pos, &mut start);
+        if token.is_ok() {
+            assert_eq!(0, token.as_ref().ok().unwrap().location.start);
+            assert_eq!(3, token.as_ref().ok().unwrap().location.end);
+            assert_eq!("2", token.as_ref().ok().unwrap().literal);
+            if token.as_ref().ok().unwrap().kind != TokenKind::Integer {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
     }
 
+    #[test]
     fn test_consume_octal_number() {
+        // Integer: 8
+        let chars: Vec<char> = vec!['8'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_octal_number(&chars, &mut pos, &mut start);
+        if token.is_err() {
+            assert_eq!("Invalid octal number", token.err().unwrap().message());
+        } else {
+            assert!(false);
+        }
+
+        // Integer: 0_7
+        let chars: Vec<char> = vec!['0', '_', '7'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_octal_number(&chars, &mut pos, &mut start);
+        if token.is_ok() {
+            assert_eq!(0, token.as_ref().ok().unwrap().location.start);
+            assert_eq!(3, token.as_ref().ok().unwrap().location.end);
+            assert_eq!("7", token.as_ref().ok().unwrap().literal);
+            if token.as_ref().ok().unwrap().kind != TokenKind::Integer {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
     }
 
+    #[test]
     fn test_consume_hex_number() {
+        // Integer: G
+        let chars: Vec<char> = vec!['G'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_hex_number(&chars, &mut pos, &mut start);
+        if token.is_err() {
+            assert_eq!("Missing digits after the integer base prefix", token.err().unwrap().message());
+        } else {
+            assert!(false);
+        }
+
+        // Integer: 01EF
+        let chars: Vec<char> = vec!['0', '1', 'E', 'F'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_hex_number(&chars, &mut pos, &mut start);
+        if token.is_ok() {
+            assert_eq!(0, token.as_ref().ok().unwrap().location.start);
+            assert_eq!(4, token.as_ref().ok().unwrap().location.end);
+            assert_eq!("495", token.as_ref().ok().unwrap().literal);
+            if token.as_ref().ok().unwrap().kind != TokenKind::Integer {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
     }
 
+    #[test]
     fn test_consume_string() {
+        // String: "N
+        let chars: Vec<char> = vec!['"', 'N'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_string(&chars, &mut pos, &mut start);
+        if token.is_err() {
+            assert_eq!("Unterminated double quote string", token.err().unwrap().message());
+        } else {
+            assert!(false);
+        }
+
+        // String: "N"
+        let chars: Vec<char> = vec!['"', 'N', '"'];
+        let mut start = 0;
+        let mut pos = 0;
+        let token = consume_string(&chars, &mut pos, &mut start);
+        if token.is_ok() {
+            assert_eq!(0, token.as_ref().ok().unwrap().location.start);
+            assert_eq!(3, token.as_ref().ok().unwrap().location.end);
+            assert_eq!("N", token.as_ref().ok().unwrap().literal);
+            if token.as_ref().ok().unwrap().kind != TokenKind::String {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
     }
 
+    #[test]
     fn test_ignore_single_line_comment() {
+        // Comment: "-- N\n"
+        let chars: Vec<char> = vec!['-', '-', ' ', 'N', '\n'];
+        let mut pos = 0;
+        ignore_single_line_comment(&chars, &mut pos);
+        assert_eq!(5, pos);
     }
 
+    #[test]
     fn test_ignore_c_style_comment() {
+        // Comment: /*N
+        let chars: Vec<char> = vec!['/', '*', 'N'];
+        let mut pos = 0;
+        let status = ignore_c_style_comment(&chars, &mut pos);
+        if status.is_err() {
+            assert_eq!("C Style comment must end with */", status.err().unwrap().message());
+        } else {
+            assert!(false);
+        }
+
+        // Comment: /*N*/
+        let chars: Vec<char> = vec!['/', '*', 'N', '*', '/'];
+        let mut pos = 0;
+        let status = ignore_c_style_comment(&chars, &mut pos);
+        if status.is_ok() {
+            assert_eq!(5, pos);
+        } else {
+            assert!(false);
+        }
     }
 
+    #[test]
     fn test_resolve_symbol_kind() {
+        // Set: SET
+        let literal = "SET".to_string();
+        let kind = resolve_symbol_kind(literal);
+        if kind != TokenKind::Set {
+            assert!(false);
+        }
+
+        // Symbol: NAME
+        let literal = "NAME".to_string();
+        let kind = resolve_symbol_kind(literal);
+        if kind != TokenKind::Symbol {
+            assert!(false);
+        }
     }
 }
