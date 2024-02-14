@@ -1590,7 +1590,10 @@ mod tests {
         let mut pos = 0;
         let token = consume_global_variable_name(&chars, &mut pos, &mut start);
         if token.is_err() {
-            assert_eq!("Global variable name must start with alphabetic character", token.err().unwrap().message());
+            assert_eq!(
+                "Global variable name must start with alphabetic character",
+                token.err().unwrap().message()
+            );
         } else {
             assert!(false);
         }
@@ -1622,7 +1625,7 @@ mod tests {
         assert_eq!(0, token.location.start);
         assert_eq!(3, token.location.end);
         assert_eq!("set", token.literal);
-        if token.kind != TokenKind::Set{
+        if token.kind != TokenKind::Set {
             assert!(false);
         }
     }
@@ -1732,7 +1735,10 @@ mod tests {
         let mut pos = 0;
         let token = consume_binary_number(&chars, &mut pos, &mut start);
         if token.is_err() {
-            assert_eq!("Missing digits after the integer base prefix", token.err().unwrap().message());
+            assert_eq!(
+                "Missing digits after the integer base prefix",
+                token.err().unwrap().message()
+            );
         } else {
             assert!(false);
         }
@@ -1792,7 +1798,10 @@ mod tests {
         let mut pos = 0;
         let token = consume_hex_number(&chars, &mut pos, &mut start);
         if token.is_err() {
-            assert_eq!("Missing digits after the integer base prefix", token.err().unwrap().message());
+            assert_eq!(
+                "Missing digits after the integer base prefix",
+                token.err().unwrap().message()
+            );
         } else {
             assert!(false);
         }
@@ -1822,7 +1831,10 @@ mod tests {
         let mut pos = 0;
         let token = consume_string(&chars, &mut pos, &mut start);
         if token.is_err() {
-            assert_eq!("Unterminated double quote string", token.err().unwrap().message());
+            assert_eq!(
+                "Unterminated double quote string",
+                token.err().unwrap().message()
+            );
         } else {
             assert!(false);
         }
@@ -1860,7 +1872,10 @@ mod tests {
         let mut pos = 0;
         let status = ignore_c_style_comment(&chars, &mut pos);
         if status.is_err() {
-            assert_eq!("C Style comment must end with */", status.err().unwrap().message());
+            assert_eq!(
+                "C Style comment must end with */",
+                status.err().unwrap().message()
+            );
         } else {
             assert!(false);
         }

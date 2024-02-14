@@ -268,3 +268,403 @@ pub fn check_all_values_are_same_type(
 
     Some(data_type)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gitql_ast::expression::NumberExpression;
+    use gitql_ast::value::Value;
+
+    #[test]
+    fn test_is_expression_type_equals() {
+        // Cast equal
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let expr: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let data_type = DataType::Text;
+
+        match is_expression_type_equals(&scope, &expr, &data_type) {
+            TypeCheckResult::Equals => {
+                assert!(true);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // Cast DataType::Text to DataType::Time
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let expr: Box<dyn Expression> = Box::new(StringExpression {
+            value: "12:36:31".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let data_type = DataType::Time;
+
+        match is_expression_type_equals(&scope, &expr, &data_type) {
+            TypeCheckResult::RightSideCasted(_) => {
+                assert!(true);
+            }
+            TypeCheckResult::Error(_) => {
+                assert!(false);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // Cast DataType::Text to DataType::Date
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let expr: Box<dyn Expression> = Box::new(StringExpression {
+            value: "2024-01-10".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let data_type = DataType::Date;
+
+        match is_expression_type_equals(&scope, &expr, &data_type) {
+            TypeCheckResult::RightSideCasted(_) => {
+                assert!(true);
+            }
+            TypeCheckResult::Error(_) => {
+                assert!(false);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // Cast DataType::Text to DataType::DateTime
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let expr: Box<dyn Expression> = Box::new(StringExpression {
+            value: "2024-01-10 12:36:31".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let data_type = DataType::DateTime;
+
+        match is_expression_type_equals(&scope, &expr, &data_type) {
+            TypeCheckResult::RightSideCasted(_) => {
+                assert!(true);
+            }
+            TypeCheckResult::Error(_) => {
+                assert!(false);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // Cast not equal
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let expr: Box<dyn Expression> = Box::new(StringExpression {
+            value: "invalid".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let data_type = DataType::Integer;
+
+        match is_expression_type_equals(&scope, &expr, &data_type) {
+            TypeCheckResult::NotEqualAndCantImplicitCast => {
+                assert!(true);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    fn test_are_types_equals() {
+        // Cast equal
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let lhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let rhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::Text,
+        });
+
+        match are_types_equals(&scope, &lhs, &rhs) {
+            TypeCheckResult::Equals => {
+                assert!(true);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // Cast DataType::Text to DataType::Time for rhs
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let lhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::Time,
+        });
+        let rhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "12:36:31".to_string(),
+            value_type: StringValueType::Text,
+        });
+
+        match are_types_equals(&scope, &lhs, &rhs) {
+            TypeCheckResult::RightSideCasted(_) => {
+                assert!(true);
+            }
+            TypeCheckResult::Error(_) => {
+                assert!(false);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // Cast DataType::Text to DataType::Time for lhs
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let lhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "12:36:31".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let rhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::Time,
+        });
+
+        match are_types_equals(&scope, &lhs, &rhs) {
+            TypeCheckResult::LeftSideCasted(_) => {
+                assert!(true);
+            }
+            TypeCheckResult::Error(_) => {
+                assert!(false);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // Cast DataType::Text to DataType::Date for rhs
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let lhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::Date,
+        });
+        let rhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "2024-01-10".to_string(),
+            value_type: StringValueType::Text,
+        });
+
+        match are_types_equals(&scope, &lhs, &rhs) {
+            TypeCheckResult::RightSideCasted(_) => {
+                assert!(true);
+            }
+            TypeCheckResult::Error(_) => {
+                assert!(false);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // Cast DataType::Text to DataType::Date for lhs
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let lhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "2024-01-10".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let rhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::Date,
+        });
+
+        match are_types_equals(&scope, &lhs, &rhs) {
+            TypeCheckResult::LeftSideCasted(_) => {
+                assert!(true);
+            }
+            TypeCheckResult::Error(_) => {
+                assert!(false);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // Cast DataType::Text to DataType::DateTime for rhs
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let lhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::DateTime,
+        });
+        let rhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "2024-01-10 12:36:31".to_string(),
+            value_type: StringValueType::Text,
+        });
+
+        match are_types_equals(&scope, &lhs, &rhs) {
+            TypeCheckResult::RightSideCasted(_) => {
+                assert!(true);
+            }
+            TypeCheckResult::Error(_) => {
+                assert!(false);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // Cast DataType::Text to DataType::DateTime for lhs
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let lhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "2024-01-10 12:36:31".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let rhs: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::DateTime,
+        });
+
+        match are_types_equals(&scope, &lhs, &rhs) {
+            TypeCheckResult::LeftSideCasted(_) => {
+                assert!(true);
+            }
+            TypeCheckResult::Error(_) => {
+                assert!(false);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // Cast not equal
+        let scope = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let lhs: Box<dyn Expression> = Box::new(NumberExpression {
+            value: Value::Integer(1),
+        });
+        let rhs: Box<dyn Expression> = Box::new(NumberExpression {
+            value: Value::Float(1.0),
+        });
+
+        match are_types_equals(&scope, &lhs, &rhs) {
+            TypeCheckResult::NotEqualAndCantImplicitCast => {
+                assert!(true);
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    fn test_check_all_values_are_same_type() {
+        // Check null type
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let arguments: Vec<Box<dyn Expression>> = vec![];
+
+        let result = check_all_values_are_same_type(&mut env, &arguments);
+        if result.is_some() {
+            if !result.unwrap().is_any() {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
+
+        // Check different type
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let arg1: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let arg2: Box<dyn Expression> = Box::new(NumberExpression {
+            value: Value::Integer(1),
+        });
+        let arguments: Vec<Box<dyn Expression>> = vec![arg1, arg2];
+
+        let result = check_all_values_are_same_type(&mut env, &arguments);
+        if result.is_none() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
+
+        // Check the same type
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+        let arg1: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let arg2: Box<dyn Expression> = Box::new(StringExpression {
+            value: "name".to_string(),
+            value_type: StringValueType::Text,
+        });
+        let arguments: Vec<Box<dyn Expression>> = vec![arg1, arg2];
+
+        let result = check_all_values_are_same_type(&mut env, &arguments);
+        if result.is_some() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
+    }
+}
