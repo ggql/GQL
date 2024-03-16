@@ -1497,7 +1497,7 @@ mod tests {
             assert!(false);
         }
 
-        // BangEqual: !
+        // Bang: !
         let script = "!".to_string();
         let tokens = tokenize(script);
         if tokens.is_ok() {
