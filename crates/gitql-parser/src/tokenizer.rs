@@ -1542,7 +1542,7 @@ mod tests {
             assert!(false);
         }
 
-        // RightParen: (
+        // RightParen: )
         let script = ")".to_string();
         let tokens = tokenize(script);
         if tokens.is_ok() {
