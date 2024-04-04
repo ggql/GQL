@@ -466,3 +466,58 @@ pub fn execute_global_variable_statement(
     env.globals.insert(statement.name.to_string(), value);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_execute_statement() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_execute_select_statement() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_execute_where_statement() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_execute_having_statement() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_execute_limit_statement() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_execute_offset_statement() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_execute_order_by_statement() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_execute_group_by_statement() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_execute_aggregation_function_statement() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_execute_global_variable_statement() {
+        // TBD: FIXME
+    }
+}

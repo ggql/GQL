@@ -203,3 +203,177 @@ fn apply_distinct_on_objects_group(gitql_object: &mut GitQLObject, hidden_select
         gitql_object.groups[0].rows.append(&mut new_objects.rows);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gitql_ast::value::Value;
+    use gitql_parser::{parser, tokenizer};
+
+    fn test_new_repo(path: String) -> Result<(), String> {
+        let mut repo = gix::init_bare(path).expect("failed to init bare");
+        let mut tree = gix::objs::Tree::empty();
+        let object = repo
+            .write_object(&tree)
+            .expect("failed to write object")
+            .detach();
+
+        let mut config = repo.config_snapshot_mut();
+        config
+            .set_raw_value("author", None, "name", "name")
+            .expect("failed to set name");
+        config
+            .set_raw_value("author", None, "email", "name@example.com")
+            .expect("failed to set email");
+
+        let repo = config
+            .commit_auto_rollback()
+            .expect("failed to commit auto rollback");
+        let commit = repo
+            .commit("HEAD", "initial commit", object, gix::commit::NO_PARENT_IDS)
+            .expect("failed to commit");
+
+        let blob = repo
+            .write_blob("hello world")
+            .expect("faile to write blob")
+            .into();
+        let entry = gix::objs::tree::Entry {
+            mode: gix::objs::tree::EntryKind::Blob.into(),
+            oid: blob,
+            filename: "hello.txt".into(),
+        };
+
+        tree.entries.push(entry);
+        let object = repo.write_object(&tree).expect("failed to write object");
+
+        let _ = repo
+            .commit("HEAD", "hello commit", object, [commit])
+            .expect("failed to commit");
+
+        Ok(())
+    }
+
+    fn test_delete_repo(path: String) -> Result<(), String> {
+        std::fs::remove_dir_all(path).expect("failed to remove dir");
+        Ok(())
+    }
+
+    #[test]
+    fn test_evaluate() {
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let path = "test-evaluate";
+        test_new_repo(path.to_string()).expect("failed to new repo");
+
+        let buf = gix::open(path);
+        let repos = &vec![buf.ok().unwrap()];
+
+        let query = "SELECT * FROM commits";
+        let result = tokenizer::tokenize(query.to_string());
+        let tokens = result.ok().unwrap();
+        let result = parser::parse_gql(tokens, &mut env);
+        let query = result.ok().unwrap();
+
+        let ret = evaluate(&mut env, &repos, query);
+        if ret.is_err() {
+            test_delete_repo(path.to_string()).expect("failed to delete repo");
+            assert!(false);
+        }
+
+        let query = "SET @STRING = \"GitQL\"";
+        let result = tokenizer::tokenize(query.to_string());
+        let tokens = result.ok().unwrap();
+        let result = parser::parse_gql(tokens, &mut env);
+        let query = result.ok().unwrap();
+
+        let ret = evaluate(&mut env, &repos, query);
+        if ret.is_err() {
+            test_delete_repo(path.to_string()).expect("failed to delete repo");
+            assert!(false);
+        }
+
+        test_delete_repo(path.to_string()).expect("failed to delete repo");
+    }
+
+    #[test]
+    fn test_evaluate_select_query() {
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let path = "test-evaluate-select-query";
+        test_new_repo(path.to_string()).expect("failed to new repo");
+
+        let buf = gix::open(path);
+        let repos = &vec![buf.ok().unwrap()];
+
+        let query = "SELECT * FROM commits";
+        let result = tokenizer::tokenize(query.to_string());
+        let tokens = result.ok().unwrap();
+        let result = parser::parse_gql(tokens, &mut env);
+        let query = result.ok().unwrap();
+
+        match query {
+            Query::Select(q) => {
+                let ret = evaluate_select_query(&mut env, &repos, q);
+                if ret.is_err() {
+                    test_delete_repo(path.to_string()).expect("failed to delete repo");
+                    assert!(false);
+                }
+            }
+            _ => {
+                test_delete_repo(path.to_string()).expect("failed to delete repo");
+                assert!(false);
+            }
+        };
+
+        test_delete_repo(path.to_string()).expect("failed to delete repo");
+    }
+
+    #[test]
+    fn test_apply_distinct_on_objects_group() {
+        let mut object = GitQLObject {
+            titles: vec!["title1".to_string(), "title2".to_string()],
+            groups: vec![Group {
+                rows: vec![
+                    Row {
+                        values: vec![Value::Integer(1), Value::Integer(2)],
+                    },
+                    Row {
+                        values: vec![Value::Integer(3), Value::Integer(4)],
+                    },
+                ],
+            }],
+        };
+
+        let selections = vec!["".to_string()];
+
+        apply_distinct_on_objects_group(&mut object, &selections);
+        assert_eq!(object.groups[0].rows.len(), 2);
+
+        let mut object = GitQLObject {
+            titles: vec!["title1".to_string(), "title2".to_string()],
+            groups: vec![Group {
+                rows: vec![
+                    Row {
+                        values: vec![Value::Integer(1), Value::Integer(2)],
+                    },
+                    Row {
+                        values: vec![Value::Integer(1), Value::Integer(2)],
+                    },
+                ],
+            }],
+        };
+
+        let selections = vec!["".to_string()];
+
+        apply_distinct_on_objects_group(&mut object, &selections);
+        assert_eq!(object.groups[0].rows.len(), 1);
+    }
+}

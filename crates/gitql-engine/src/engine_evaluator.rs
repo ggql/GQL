@@ -496,3 +496,103 @@ fn evaluate_is_null(
         is_null
     }))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_evaluate_expression() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_assignment() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_string() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_symbol() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_global_variable() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_number() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_boolean() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_prefix_unary() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_arithmetic() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_comparison() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_like() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_glob() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_logical() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_bitwise() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_call() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_between() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_case() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_in() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_evaluate_is_null() {
+        // TBD: FIXME
+    }
+}

@@ -510,3 +510,48 @@ pub fn get_column_name(alias_table: &HashMap<String, String>, name: &str) -> Str
         .unwrap_or(&name.to_string())
         .to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_select_gql_objects() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_select_references() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_select_commits() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_select_branches() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_select_diffs() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_select_tags() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_select_values() {
+        // TBD: FIXME
+    }
+
+    #[test]
+    fn test_get_column_name() {
+        // TBD: FIXME
+    }
+}

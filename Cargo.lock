@@ -486,6 +486,7 @@ name = "gitql-engine"
 version = "0.13.0"
 dependencies = [
  "gitql-ast",
+ "gitql-parser",
  "gix",
  "regex",
 ]
