@@ -500,99 +500,1028 @@ fn evaluate_is_null(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gitql_ast::expression::NullExpression;
+    use gitql_ast::types::DataType;
 
     #[test]
     fn test_evaluate_expression() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression: Box<dyn Expression> = Box::new(AssignmentExpression {
+            symbol: "=".to_string(),
+            value: Box::new(StringExpression {
+                value: "value".to_string(),
+                value_type: StringValueType::Text,
+            }),
+        });
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_expression(&mut env, &expression, &titles, &object);
+        if ret.is_err() {
+            assert!(false);
+        }
+
+        let expression: Box<dyn Expression> = Box::new(NullExpression {});
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Null];
+
+        let ret = evaluate_expression(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert!(ret.ok().unwrap().data_type().is_null());
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_assignment() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = AssignmentExpression {
+            symbol: "=".to_string(),
+            value: Box::new(StringExpression {
+                value: "value".to_string(),
+                value_type: StringValueType::Text,
+            }),
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_assignment(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().to_string(), "value");
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_string() {
-        // TBD: FIXME
+        let expression = StringExpression {
+            value: "text".to_string(),
+            value_type: StringValueType::Text,
+        };
+
+        let ret = evaluate_string(&expression);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().to_string(), "text");
+        } else {
+            assert!(false);
+        }
+
+        let expression = StringExpression {
+            value: "12:36:31".to_string(),
+            value_type: StringValueType::Time,
+        };
+
+        let ret = evaluate_string(&expression);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().to_string(), "12:36:31");
+        } else {
+            assert!(false);
+        }
+
+        let expression = StringExpression {
+            value: "2024-01-10".to_string(),
+            value_type: StringValueType::Date,
+        };
+
+        let ret = evaluate_string(&expression);
+        if ret.is_ok() {
+            assert_eq!(
+                ret.ok().unwrap().as_date(),
+                date_to_time_stamp("2024-01-10")
+            );
+        } else {
+            assert!(false);
+        }
+
+        let expression = StringExpression {
+            value: "2024-01-10 12:36:31".to_string(),
+            value_type: StringValueType::DateTime,
+        };
+
+        let ret = evaluate_string(&expression);
+        if ret.is_ok() {
+            assert_eq!(
+                ret.ok().unwrap().as_date_time(),
+                date_time_to_time_stamp("2024-01-10 12:36:31")
+            );
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_symbol() {
-        // TBD: FIXME
+        let expression = SymbolExpression {
+            value: "value".to_string(),
+        };
+
+        let titles = vec!["value".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_symbol(&expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().to_string(), "object");
+        } else {
+            assert!(false);
+        }
+
+        let expression = SymbolExpression {
+            value: "value".to_string(),
+        };
+
+        let titles = vec!["invalid".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_symbol(&expression, &titles, &object);
+        if ret.is_err() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_global_variable() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        env.globals
+            .insert("name".to_string(), Value::Text("value".to_string()));
+
+        let expression = GlobalVariableExpression {
+            name: "name".to_string(),
+        };
+
+        let ret = evaluate_global_variable(&mut env, &expression);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().to_string(), "value");
+        } else {
+            assert!(false);
+        }
+
+        env.globals
+            .insert("name".to_string(), Value::Text("value".to_string()));
+
+        let expression = GlobalVariableExpression {
+            name: "invalid".to_string(),
+        };
+
+        let ret = evaluate_global_variable(&mut env, &expression);
+        if ret.is_err() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_number() {
-        // TBD: FIXME
+        let expression = NumberExpression {
+            value: Value::Integer(1),
+        };
+
+        let ret = evaluate_number(&expression);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 1);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_boolean() {
-        // TBD: FIXME
+        let expression = BooleanExpression { is_true: false };
+
+        let ret = evaluate_boolean(&expression);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), false);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_prefix_unary() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = PrefixUnary {
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            op: PrefixUnaryOperator::Minus,
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_prefix_unary(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), -1);
+        } else {
+            assert!(false);
+        }
+
+        let expression = PrefixUnary {
+            right: Box::new(NumberExpression {
+                value: Value::Float(1.0),
+            }),
+            op: PrefixUnaryOperator::Minus,
+        };
+
+        let ret = evaluate_prefix_unary(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_float(), -1.0);
+        } else {
+            assert!(false);
+        }
+
+        let expression = PrefixUnary {
+            right: Box::new(BooleanExpression { is_true: false }),
+            op: PrefixUnaryOperator::Bang,
+        };
+
+        let ret = evaluate_prefix_unary(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_arithmetic() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = ArithmeticExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: ArithmeticOperator::Plus,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_arithmetic(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 2);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ArithmeticExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: ArithmeticOperator::Minus,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let ret = evaluate_arithmetic(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 0);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ArithmeticExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(2),
+            }),
+            operator: ArithmeticOperator::Star,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let ret = evaluate_arithmetic(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 2);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ArithmeticExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(2),
+            }),
+            operator: ArithmeticOperator::Slash,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let ret = evaluate_arithmetic(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 2);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ArithmeticExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(2),
+            }),
+            operator: ArithmeticOperator::Modulus,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let ret = evaluate_arithmetic(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 0);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_comparison() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = ComparisonExpression {
+            left: Box::new(NumberExpression { value: Value::Null }),
+            operator: ComparisonOperator::NullSafeEqual,
+            right: Box::new(NumberExpression { value: Value::Null }),
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_comparison(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 1);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ComparisonExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: ComparisonOperator::NullSafeEqual,
+            right: Box::new(NumberExpression { value: Value::Null }),
+        };
+
+        let ret = evaluate_comparison(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 0);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ComparisonExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: ComparisonOperator::NullSafeEqual,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let ret = evaluate_comparison(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 1);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ComparisonExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: ComparisonOperator::NullSafeEqual,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(2),
+            }),
+        };
+
+        let ret = evaluate_comparison(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 0);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ComparisonExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(2),
+            }),
+            operator: ComparisonOperator::Greater,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let ret = evaluate_comparison(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ComparisonExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(2),
+            }),
+            operator: ComparisonOperator::GreaterEqual,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let ret = evaluate_comparison(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ComparisonExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: ComparisonOperator::Less,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(2),
+            }),
+        };
+
+        let ret = evaluate_comparison(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ComparisonExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: ComparisonOperator::LessEqual,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(2),
+            }),
+        };
+
+        let ret = evaluate_comparison(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ComparisonExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: ComparisonOperator::Equal,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let ret = evaluate_comparison(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ComparisonExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: ComparisonOperator::NotEqual,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(2),
+            }),
+        };
+
+        let ret = evaluate_comparison(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = ComparisonExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: ComparisonOperator::NullSafeEqual,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(2),
+            }),
+        };
+
+        let ret = evaluate_comparison(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), false);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_like() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = LikeExpression {
+            input: Box::new(StringExpression {
+                value: "10 usd".to_string(),
+                value_type: StringValueType::Text,
+            }),
+            pattern: Box::new(StringExpression {
+                value: "[0-9]* usd".to_string(),
+                value_type: StringValueType::Text,
+            }),
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_like(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = LikeExpression {
+            input: Box::new(StringExpression {
+                value: "10 usd".to_string(),
+                value_type: StringValueType::Text,
+            }),
+            pattern: Box::new(StringExpression {
+                value: "1".to_string(),
+                value_type: StringValueType::Text,
+            }),
+        };
+
+        let ret = evaluate_like(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), false);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_glob() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = GlobExpression {
+            input: Box::new(StringExpression {
+                value: "Git Query Language".to_string(),
+                value_type: StringValueType::Text,
+            }),
+            pattern: Box::new(StringExpression {
+                value: "Git*".to_string(),
+                value_type: StringValueType::Text,
+            }),
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_glob(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = GlobExpression {
+            input: Box::new(StringExpression {
+                value: "Git Query Language".to_string(),
+                value_type: StringValueType::Text,
+            }),
+            pattern: Box::new(StringExpression {
+                value: "1".to_string(),
+                value_type: StringValueType::Text,
+            }),
+        };
+
+        let ret = evaluate_glob(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), false);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_logical() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = LogicalExpression {
+            left: Box::new(BooleanExpression { is_true: false }),
+            operator: LogicalOperator::And,
+            right: Box::new(BooleanExpression { is_true: false }),
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_logical(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), false);
+        } else {
+            assert!(false);
+        }
+
+        let expression = LogicalExpression {
+            left: Box::new(BooleanExpression { is_true: false }),
+            operator: LogicalOperator::Or,
+            right: Box::new(BooleanExpression { is_true: true }),
+        };
+
+        let ret = evaluate_logical(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = LogicalExpression {
+            left: Box::new(BooleanExpression { is_true: false }),
+            operator: LogicalOperator::Xor,
+            right: Box::new(BooleanExpression { is_true: true }),
+        };
+
+        let ret = evaluate_logical(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_bitwise() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = BitwiseExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: BitwiseOperator::Or,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(0),
+            }),
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_bitwise(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 1);
+        } else {
+            assert!(false);
+        }
+
+        let expression = BitwiseExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: BitwiseOperator::And,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(0),
+            }),
+        };
+
+        let ret = evaluate_bitwise(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 0);
+        } else {
+            assert!(false);
+        }
+
+        let expression = BitwiseExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(2),
+            }),
+            operator: BitwiseOperator::RightShift,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let ret = evaluate_bitwise(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 1);
+        } else {
+            assert!(false);
+        }
+
+        let expression = BitwiseExpression {
+            left: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            operator: BitwiseOperator::LeftShift,
+            right: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let ret = evaluate_bitwise(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_int(), 2);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_call() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = CallExpression {
+            function_name: "lower".to_string(),
+            arguments: vec![Box::new(StringExpression {
+                value: "NAME".to_string(),
+                value_type: StringValueType::Text,
+            })],
+            is_aggregation: false,
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_call(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_text(), "name");
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_between() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = BetweenExpression {
+            value: Box::new(NumberExpression {
+                value: Value::Integer(0),
+            }),
+            range_start: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            range_end: Box::new(NumberExpression {
+                value: Value::Integer(3),
+            }),
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_between(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), false);
+        } else {
+            assert!(false);
+        }
+
+        let expression = BetweenExpression {
+            value: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            range_start: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            range_end: Box::new(NumberExpression {
+                value: Value::Integer(3),
+            }),
+        };
+
+        let ret = evaluate_between(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = BetweenExpression {
+            value: Box::new(NumberExpression {
+                value: Value::Integer(3),
+            }),
+            range_start: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            range_end: Box::new(NumberExpression {
+                value: Value::Integer(3),
+            }),
+        };
+
+        let ret = evaluate_between(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = BetweenExpression {
+            value: Box::new(NumberExpression {
+                value: Value::Integer(4),
+            }),
+            range_start: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            range_end: Box::new(NumberExpression {
+                value: Value::Integer(3),
+            }),
+        };
+
+        let ret = evaluate_between(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), false);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_case() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = CaseExpression {
+            conditions: vec![Box::new(StringExpression {
+                value: "isRemote".to_string(),
+                value_type: StringValueType::Text,
+            })],
+            values: vec![Box::new(NumberExpression {
+                value: Value::Integer(1),
+            })],
+            default_value: Some(Box::new(NumberExpression {
+                value: Value::Integer(0),
+            })),
+            values_type: DataType::Integer,
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_case(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
+
+        let expression = CaseExpression {
+            conditions: vec![],
+            values: vec![],
+            default_value: None,
+            values_type: DataType::Integer,
+        };
+
+        let ret = evaluate_case(&mut env, &expression, &titles, &object);
+        if ret.is_err() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_in() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = InExpression {
+            argument: Box::new(StringExpression {
+                value: "One".to_string(),
+                value_type: StringValueType::Text,
+            }),
+            values: vec![
+                Box::new(StringExpression {
+                    value: "One".to_string(),
+                    value_type: StringValueType::Text,
+                }),
+                Box::new(StringExpression {
+                    value: "Two".to_string(),
+                    value_type: StringValueType::Text,
+                }),
+            ],
+            values_type: DataType::Text,
+            has_not_keyword: false,
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_in(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_evaluate_is_null() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let expression = IsNullExpression {
+            argument: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+            has_not: false,
+        };
+
+        let titles = vec!["title".to_string()];
+        let object = vec![Value::Text("object".to_string())];
+
+        let ret = evaluate_is_null(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), false);
+        } else {
+            assert!(false);
+        }
+
+        let expression = IsNullExpression {
+            argument: Box::new(NullExpression {}),
+            has_not: false,
+        };
+
+        let ret = evaluate_is_null(&mut env, &expression, &titles, &object);
+        if ret.is_ok() {
+            assert_eq!(ret.ok().unwrap().as_bool(), true);
+        } else {
+            assert!(false);
+        }
     }
 }
