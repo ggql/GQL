@@ -2545,7 +2545,7 @@ mod tests {
             assert!(false);
         }
 
-        // Test: SET @STRING = ""GitQL"
+        // Test: SET @STRING = "GitQL"
         let tokens = vec![
             Token {
                 location: Location { start: 1, end: 2 },
