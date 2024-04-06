@@ -471,6 +471,54 @@ pub fn execute_global_variable_statement(
 mod tests {
     use super::*;
 
+    fn test_new_repo(path: String) -> Result<(), String> {
+        let mut repo = gix::init_bare(path).expect("failed to init bare");
+        let mut tree = gix::objs::Tree::empty();
+        let object = repo
+            .write_object(&tree)
+            .expect("failed to write object")
+            .detach();
+
+        let mut config = repo.config_snapshot_mut();
+        config
+            .set_raw_value("author", None, "name", "name")
+            .expect("failed to set name");
+        config
+            .set_raw_value("author", None, "email", "name@example.com")
+            .expect("failed to set email");
+
+        let repo = config
+            .commit_auto_rollback()
+            .expect("failed to commit auto rollback");
+        let commit = repo
+            .commit("HEAD", "initial commit", object, gix::commit::NO_PARENT_IDS)
+            .expect("failed to commit");
+
+        let blob = repo
+            .write_blob("hello world")
+            .expect("faile to write blob")
+            .into();
+        let entry = gix::objs::tree::Entry {
+            mode: gix::objs::tree::EntryKind::Blob.into(),
+            oid: blob,
+            filename: "hello.txt".into(),
+        };
+
+        tree.entries.push(entry);
+        let object = repo.write_object(&tree).expect("failed to write object");
+
+        let _ = repo
+            .commit("HEAD", "hello commit", object, [commit])
+            .expect("failed to commit");
+
+        Ok(())
+    }
+
+    fn test_delete_repo(path: String) -> Result<(), String> {
+        std::fs::remove_dir_all(path).expect("failed to remove dir");
+        Ok(())
+    }
+
     #[test]
     fn test_execute_statement() {
         // TBD: FIXME

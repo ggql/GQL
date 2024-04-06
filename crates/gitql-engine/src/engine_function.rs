@@ -514,44 +514,329 @@ pub fn get_column_name(alias_table: &HashMap<String, String>, name: &str) -> Str
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gitql_ast::expression::StringExpression;
+    use gitql_ast::expression::StringValueType;
+
+    fn test_new_repo(path: String) -> Result<(), String> {
+        let mut repo = gix::init_bare(path).expect("failed to init bare");
+        let mut tree = gix::objs::Tree::empty();
+        let object = repo
+            .write_object(&tree)
+            .expect("failed to write object")
+            .detach();
+
+        let mut config = repo.config_snapshot_mut();
+        config
+            .set_raw_value("author", None, "name", "name")
+            .expect("failed to set name");
+        config
+            .set_raw_value("author", None, "email", "name@example.com")
+            .expect("failed to set email");
+
+        let repo = config
+            .commit_auto_rollback()
+            .expect("failed to commit auto rollback");
+        let commit = repo
+            .commit("HEAD", "initial commit", object, gix::commit::NO_PARENT_IDS)
+            .expect("failed to commit");
+
+        let blob = repo
+            .write_blob("hello world")
+            .expect("faile to write blob")
+            .into();
+        let entry = gix::objs::tree::Entry {
+            mode: gix::objs::tree::EntryKind::Blob.into(),
+            oid: blob,
+            filename: "hello.txt".into(),
+        };
+
+        tree.entries.push(entry);
+        let object = repo.write_object(&tree).expect("failed to write object");
+
+        let _ = repo
+            .commit("HEAD", "hello commit", object, [commit])
+            .expect("failed to commit");
+
+        Ok(())
+    }
+
+    fn test_delete_repo(path: String) -> Result<(), String> {
+        std::fs::remove_dir_all(path).expect("failed to remove dir");
+        Ok(())
+    }
 
     #[test]
     fn test_select_gql_objects() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let path = "test-select-gql-objects";
+        test_new_repo(path.to_string()).expect("failed to new repo");
+
+        let buf = gix::open(path);
+        let repo = buf.ok().unwrap();
+
+        let table = "refs".to_string();
+        let fields_names = vec![
+            "name".to_string(),
+            "full_name".to_string(),
+            "type".to_string(),
+            "repo".to_string(),
+        ];
+        let titles = vec!["title".to_string()];
+
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+            value: "value".to_string(),
+            value_type: StringValueType::Text,
+        })];
+
+        let ret = select_gql_objects(
+            &mut env,
+            &repo,
+            table,
+            &fields_names,
+            &titles,
+            &fields_values,
+        );
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            test_delete_repo(path.to_string()).expect("failed to delete repo");
+            assert!(false);
+        }
+
+        test_delete_repo(path.to_string()).expect("failed to delete repo");
     }
 
     #[test]
     fn test_select_references() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let path = "test-select-references";
+        test_new_repo(path.to_string()).expect("failed to new repo");
+
+        let buf = gix::open(path);
+        let repo = buf.ok().unwrap();
+
+        let fields_names = vec![
+            "name".to_string(),
+            "full_name".to_string(),
+            "type".to_string(),
+            "repo".to_string(),
+        ];
+        let titles = vec!["title".to_string()];
+
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+            value: "value".to_string(),
+            value_type: StringValueType::Text,
+        })];
+
+        let ret = select_references(&mut env, &repo, &fields_names, &titles, &fields_values);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            test_delete_repo(path.to_string()).expect("failed to delete repo");
+            assert!(false);
+        }
+
+        test_delete_repo(path.to_string()).expect("failed to delete repo");
     }
 
     #[test]
     fn test_select_commits() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let path = "test-select-commits";
+        test_new_repo(path.to_string()).expect("failed to new repo");
+
+        let buf = gix::open(path);
+        let repo = buf.ok().unwrap();
+
+        let fields_names = vec![
+            "commit_id".to_string(),
+            "name".to_string(),
+            "email".to_string(),
+            "title".to_string(),
+            "message".to_string(),
+            "datetime".to_string(),
+            "repo".to_string(),
+        ];
+        let titles = vec!["title".to_string()];
+
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+            value: "value".to_string(),
+            value_type: StringValueType::Text,
+        })];
+
+        let ret = select_commits(&mut env, &repo, &fields_names, &titles, &fields_values);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            test_delete_repo(path.to_string()).expect("failed to delete repo");
+            assert!(false);
+        }
+
+        test_delete_repo(path.to_string()).expect("failed to delete repo");
     }
 
     #[test]
     fn test_select_branches() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let path = "test-select-branches";
+        test_new_repo(path.to_string()).expect("failed to new repo");
+
+        let buf = gix::open(path);
+        let repo = buf.ok().unwrap();
+
+        let fields_names = vec![
+            "name".to_string(),
+            "commit_count".to_string(),
+            "is_head".to_string(),
+            "is_remote".to_string(),
+            "repo".to_string(),
+        ];
+        let titles = vec!["title".to_string()];
+
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+            value: "value".to_string(),
+            value_type: StringValueType::Text,
+        })];
+
+        let ret = select_branches(&mut env, &repo, &fields_names, &titles, &fields_values);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            test_delete_repo(path.to_string()).expect("failed to delete repo");
+            assert!(false);
+        }
+
+        test_delete_repo(path.to_string()).expect("failed to delete repo");
     }
 
     #[test]
     fn test_select_diffs() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let path = "test-select-diffs";
+        test_new_repo(path.to_string()).expect("failed to new repo");
+
+        let buf = gix::open(path);
+        let repo = buf.ok().unwrap();
+
+        let fields_names = vec![
+            "commit_id".to_string(),
+            "name".to_string(),
+            "email".to_string(),
+            "repo".to_string(),
+            "insertions".to_string(),
+            "deletions".to_string(),
+            "files_changed".to_string(),
+        ];
+        let titles = vec!["title".to_string()];
+
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+            value: "value".to_string(),
+            value_type: StringValueType::Text,
+        })];
+
+        let ret = select_diffs(&mut env, &repo, &fields_names, &titles, &fields_values);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            test_delete_repo(path.to_string()).expect("failed to delete repo");
+            assert!(false);
+        }
+
+        test_delete_repo(path.to_string()).expect("failed to delete repo");
     }
 
     #[test]
     fn test_select_tags() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let path = "test-select-tags";
+        test_new_repo(path.to_string()).expect("failed to new repo");
+
+        let buf = gix::open(path);
+        let repo = buf.ok().unwrap();
+
+        let fields_names = vec!["name".to_string(), "repo".to_string()];
+        let titles = vec!["title".to_string()];
+
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+            value: "value".to_string(),
+            value_type: StringValueType::Text,
+        })];
+
+        let ret = select_tags(&mut env, &repo, &fields_names, &titles, &fields_values);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            test_delete_repo(path.to_string()).expect("failed to delete repo");
+            assert!(false);
+        }
+
+        test_delete_repo(path.to_string()).expect("failed to delete repo");
     }
 
     #[test]
     fn test_select_values() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let titles = vec!["title".to_string()];
+
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+            value: "value".to_string(),
+            value_type: StringValueType::Text,
+        })];
+
+        let ret = select_values(&mut env, &titles, &fields_values);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_get_column_name() {
-        // TBD: FIXME
+        let mut table: HashMap<String, String> = HashMap::new();
+        table.insert("key".to_string(), "value".to_string());
+
+        let name = "key";
+        let ret = get_column_name(&table, name);
+        assert_eq!(ret, "value".to_string());
+
+        let name = "invalid";
+        let ret = get_column_name(&table, name);
+        assert_eq!(ret, "invalid".to_string());
     }
 }
