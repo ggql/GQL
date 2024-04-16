@@ -470,6 +470,7 @@ pub fn execute_global_variable_statement(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gitql_ast::expression::NumberExpression;
 
     fn test_new_repo(path: String) -> Result<(), String> {
         let mut repo = gix::init_bare(path).expect("failed to init bare");
@@ -521,51 +522,355 @@ mod tests {
 
     #[test]
     fn test_execute_statement() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let statement: Box<dyn Statement> = Box::new(SelectStatement {
+            table_name: "commits".to_string(),
+            fields_names: vec![
+                "commit_id".to_string(),
+                "title".to_string(),
+                "message".to_string(),
+                "name".to_string(),
+                "email".to_string(),
+                "datetime".to_string(),
+                "repo".to_string(),
+            ],
+            fields_values: vec![],
+            alias_table: Default::default(),
+            is_distinct: false,
+        });
+
+        let path = "test-execute-statement";
+        test_new_repo(path.to_string()).expect("failed to new repo");
+
+        let buf = gix::open(path);
+        let repo = buf.ok().unwrap();
+
+        let mut object = GitQLObject::default();
+        let mut table: HashMap<String, String> = HashMap::new();
+        let selection = vec!["".to_string()];
+
+        let ret = execute_statement(
+            &mut env,
+            &statement,
+            &repo,
+            &mut object,
+            &mut table,
+            &selection,
+        );
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
+
+        test_delete_repo(path.to_string()).expect("failed to delete repo");
     }
 
     #[test]
     fn test_execute_select_statement() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let statement = SelectStatement {
+            table_name: "commits".to_string(),
+            fields_names: vec![
+                "commit_id".to_string(),
+                "title".to_string(),
+                "message".to_string(),
+                "name".to_string(),
+                "email".to_string(),
+                "datetime".to_string(),
+                "repo".to_string(),
+            ],
+            fields_values: vec![],
+            alias_table: Default::default(),
+            is_distinct: false,
+        };
+
+        let path = "test-execute-select-statement";
+        test_new_repo(path.to_string()).expect("failed to new repo");
+
+        let buf = gix::open(path);
+        let repo = buf.ok().unwrap();
+
+        let mut object = GitQLObject::default();
+        let selections = vec!["".to_string()];
+
+        let ret = execute_select_statement(&mut env, &statement, &repo, &mut object, &selections);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
+
+        test_delete_repo(path.to_string()).expect("failed to delete repo");
     }
 
     #[test]
     fn test_execute_where_statement() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let statement = WhereStatement {
+            condition: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let mut object = GitQLObject {
+            titles: vec!["title1".to_string(), "title2".to_string()],
+            groups: vec![Group {
+                rows: vec![
+                    Row {
+                        values: vec![Value::Integer(1), Value::Integer(2)],
+                    },
+                    Row {
+                        values: vec![Value::Integer(3), Value::Integer(4)],
+                    },
+                ],
+            }],
+        };
+
+        let ret = execute_where_statement(&mut env, &statement, &mut object);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_execute_having_statement() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let statement = HavingStatement {
+            condition: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let mut object = GitQLObject {
+            titles: vec!["title1".to_string(), "title2".to_string()],
+            groups: vec![Group {
+                rows: vec![
+                    Row {
+                        values: vec![Value::Integer(1), Value::Integer(2)],
+                    },
+                    Row {
+                        values: vec![Value::Integer(3), Value::Integer(4)],
+                    },
+                ],
+            }],
+        };
+
+        let ret = execute_having_statement(&mut env, &statement, &mut object);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_execute_limit_statement() {
-        // TBD: FIXME
+        let statement = LimitStatement { count: 0 };
+
+        let mut object = GitQLObject {
+            titles: vec!["title1".to_string(), "title2".to_string()],
+            groups: vec![Group {
+                rows: vec![
+                    Row {
+                        values: vec![Value::Integer(1), Value::Integer(2)],
+                    },
+                    Row {
+                        values: vec![Value::Integer(3), Value::Integer(4)],
+                    },
+                ],
+            }],
+        };
+
+        let ret = execute_limit_statement(&statement, &mut object);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_execute_offset_statement() {
-        // TBD: FIXME
+        let statement = OffsetStatement { count: 0 };
+
+        let mut object = GitQLObject {
+            titles: vec!["title1".to_string(), "title2".to_string()],
+            groups: vec![Group {
+                rows: vec![
+                    Row {
+                        values: vec![Value::Integer(1), Value::Integer(2)],
+                    },
+                    Row {
+                        values: vec![Value::Integer(3), Value::Integer(4)],
+                    },
+                ],
+            }],
+        };
+
+        let ret = execute_offset_statement(&statement, &mut object);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_execute_order_by_statement() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let statement = OrderByStatement {
+            arguments: vec![Box::new(NumberExpression {
+                value: Value::Integer(5),
+            })],
+            sorting_orders: vec![SortingOrder::Ascending],
+        };
+
+        let mut object = GitQLObject {
+            titles: vec!["title1".to_string(), "title2".to_string()],
+            groups: vec![Group {
+                rows: vec![
+                    Row {
+                        values: vec![Value::Integer(1), Value::Integer(2)],
+                    },
+                    Row {
+                        values: vec![Value::Integer(3), Value::Integer(4)],
+                    },
+                ],
+            }],
+        };
+
+        let ret = execute_order_by_statement(&mut env, &statement, &mut object);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_execute_group_by_statement() {
-        // TBD: FIXME
+        let statement = GroupByStatement {
+            field_name: "title1".to_string(),
+        };
+
+        let mut object = GitQLObject {
+            titles: vec!["title1".to_string(), "title2".to_string()],
+            groups: vec![Group {
+                rows: vec![
+                    Row {
+                        values: vec![Value::Integer(1), Value::Integer(2)],
+                    },
+                    Row {
+                        values: vec![Value::Integer(3), Value::Integer(4)],
+                    },
+                ],
+            }],
+        };
+
+        let ret = execute_group_by_statement(&statement, &mut object);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_execute_aggregation_function_statement() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let mut statement = AggregationsStatement {
+            aggregations: Default::default(),
+        };
+
+        statement.aggregations.insert(
+            "title".to_string(),
+            AggregateValue::Function("max".to_string(), "title1".to_string()),
+        );
+        statement.aggregations.insert(
+            "title".to_string(),
+            AggregateValue::Expression(Box::new(NumberExpression {
+                value: Value::Integer(5),
+            })),
+        );
+
+        let mut object = GitQLObject {
+            titles: vec!["title1".to_string(), "title2".to_string()],
+            groups: vec![Group {
+                rows: vec![
+                    Row {
+                        values: vec![Value::Integer(1), Value::Integer(2)],
+                    },
+                    Row {
+                        values: vec![Value::Integer(3), Value::Integer(4)],
+                    },
+                ],
+            }],
+        };
+
+        let mut table: HashMap<String, String> = HashMap::new();
+        table.insert("title".to_string(), "title1".to_string());
+
+        let ret = execute_aggregation_function_statement(&mut env, &statement, &mut object, &table);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 
     #[test]
     fn test_execute_global_variable_statement() {
-        // TBD: FIXME
+        let mut env = Environment {
+            globals: Default::default(),
+            globals_types: Default::default(),
+            scopes: Default::default(),
+        };
+
+        let statement = GlobalVariableStatement {
+            name: "name".to_string(),
+            value: Box::new(NumberExpression {
+                value: Value::Integer(1),
+            }),
+        };
+
+        let ret = execute_global_variable_statement(&mut env, &statement);
+        if ret.is_ok() {
+            assert!(true);
+        } else {
+            assert!(false);
+        }
     }
 }
