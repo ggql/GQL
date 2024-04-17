@@ -12,6 +12,13 @@ keywords = ["cli", "gql", "language", "git", "sql"]
 categories = ["command-line-utilities"]
 exclude = [".github/**", "docs/**", "media/**", "scripts/**"]
 
+[[bin]]
+name = "gitql"
+path = "src/main.rs"
+
+[profile.release]
+strip = "debuginfo"
+
 [workspace]
 members = [
     "crates/gitql-ast",
