@@ -7,14 +7,6 @@ description = "GitQL Engine"
 repository = "https://github.com/amrdeveloper/gql/tree/main/crates/gitql-engine"
 license = "MIT"
 
-[lib]
-name = "engine"
-path = "src/lib.rs"
-crate-type = ["staticlib"]
-
-[profile.release]
-strip = "debuginfo"
-
 [dependencies]
 gitql-ast = { path = "../gitql-ast", version = "0.11.0" }
 gitql-parser = { path = "../gitql-parser", version = "0.12.0" }

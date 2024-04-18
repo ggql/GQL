@@ -7,14 +7,6 @@ description = "GitQL parser"
 repository = "https://github.com/amrdeveloper/gql/tree/main/crates/gitql-parser"
 license = "MIT"
 
-[lib]
-name = "parser"
-path = "src/lib.rs"
-crate-type = ["staticlib"]
-
-[profile.release]
-strip = "debuginfo"
-
 [dependencies]
 gitql-ast = { path = "../gitql-ast", version = "0.11.0" }
 lazy_static = "1.4.0"
