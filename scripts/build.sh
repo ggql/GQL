@@ -1,6 +1,6 @@
 #!/bin/bash
 build=$(date +%FT%T%z)
-linux="target/x86_64-unknown-linux-musl/release/gitql"
+linux="target/release/gitql"
 if [ "$1" = "all" ]; then
   build=$build cargo build --release --all-features --all-targets
 elif [ "$1" = "offline" ]; then
