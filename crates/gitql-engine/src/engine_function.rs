@@ -633,9 +633,8 @@ mod tests {
         ];
         let titles = vec!["title".to_string()];
 
-        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(SymbolExpression {
             value: "value".to_string(),
-            value_type: StringValueType::Text,
         })];
 
         let ret = select_references(&mut env, &repo, &fields_names, &titles, &fields_values);
@@ -674,9 +673,8 @@ mod tests {
         ];
         let titles = vec!["title".to_string()];
 
-        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(SymbolExpression {
             value: "value".to_string(),
-            value_type: StringValueType::Text,
         })];
 
         let ret = select_commits(&mut env, &repo, &fields_names, &titles, &fields_values);
@@ -713,9 +711,8 @@ mod tests {
         ];
         let titles = vec!["title".to_string()];
 
-        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(SymbolExpression {
             value: "value".to_string(),
-            value_type: StringValueType::Text,
         })];
 
         let ret = select_branches(&mut env, &repo, &fields_names, &titles, &fields_values);
@@ -754,9 +751,8 @@ mod tests {
         ];
         let titles = vec!["title".to_string()];
 
-        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(SymbolExpression {
             value: "value".to_string(),
-            value_type: StringValueType::Text,
         })];
 
         let ret = select_diffs(&mut env, &repo, &fields_names, &titles, &fields_values);
@@ -787,9 +783,8 @@ mod tests {
         let fields_names = vec!["name".to_string(), "repo".to_string()];
         let titles = vec!["title".to_string()];
 
-        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(SymbolExpression {
             value: "value".to_string(),
-            value_type: StringValueType::Text,
         })];
 
         let ret = select_tags(&mut env, &repo, &fields_names, &titles, &fields_values);
@@ -813,9 +808,8 @@ mod tests {
 
         let titles = vec!["title".to_string()];
 
-        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(SymbolExpression {
             value: "value".to_string(),
-            value_type: StringValueType::Text,
         })];
 
         let ret = select_values(&mut env, &titles, &fields_values);
