@@ -808,8 +808,9 @@ mod tests {
 
         let titles = vec!["title".to_string()];
 
-        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(SymbolExpression {
+        let fields_values: Vec<Box<dyn Expression>> = vec![Box::new(StringExpression {
             value: "value".to_string(),
+            value_type: StringValueType::Text,
         })];
 
         let ret = select_values(&mut env, &titles, &fields_values);
